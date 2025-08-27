@@ -7,13 +7,24 @@ generator client {
   provider = "prisma-client-js"
 }
 
+/*------------------------------
+ * ------------Core-------------
+ * ---------------------------*/
+
 model Tenant {
-  id        String    @id @default(uuid())
+  id        String   @id @default(uuid())
   name      String
-  createdAt DateTime  @default(now())
-  users     User[]
-  Contact   Contact[]
-  Lead      Lead[]
+  createdAt DateTime @default(now())
+
+  users            User[]
+  customers        Customer[]
+  leads            Lead[]
+  deals            Deal[]
+  campaigns        Campaign[]
+  events           Event[]
+  externalAccounts ExternalAccount[]
+  Estimate         Estimate[]
+  Invoice          Invoice[]
 }
 
 model User {
@@ -22,30 +33,154 @@ model User {
   email     String   @unique
   name      String?
   role      String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   createdAt DateTime @default(now())
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  events Event[] @relation("UserEvents")
 }
 
-model Contact {
-  id        String   @id @default(uuid())
-  tenantId  String
-  email     String?
-  phone     String?
-  name      String?
-  company   String?
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+model Customer {
+  id          String   @id @default(uuid())
+  tenantId    String
+  email       String?  @unique
+  phone       String?
+  name        String?
+  tags        String[]
+  preferences Json?
+
   createdAt DateTime @default(now())
-  Lead      Lead[]
+
+  tenant            Tenant              @relation(fields: [tenantId], references: [id])
+  leads             Lead[]
+  deals             Deal[]
+  invoices          Invoice[]
+  estimates         Estimate[]
+  CampaignRecipient CampaignRecipient[]
 }
+
+/*------------------------------
+ * ----------Calendar-----------
+ * ---------------------------*/
+
+model Event {
+  id          String   @id @default(uuid())
+  tenantId    String
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id])
+  attendees User[] @relation("UserEvents")
+}
+
+/*------------------------------
+ * ------------Sales------------
+ * ---------------------------*/
 
 model Lead {
-  id        String   @id @default(uuid())
+  id         String   @id @default(uuid())
+  tenantId   String
+  customerId String?
+  name       String
+  source     String?
+  stage      String?
+  score      Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+}
+
+model Deal {
+  id         String   @id @default(uuid())
+  tenantId   String
+  customerId String?
+  value      Float
+  stage      String
+  status     String // open, won, lost
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+}
+
+model Estimate {
+  id          String   @id @default(uuid())
+  tenantId    String
+  customerId  String
+  description String?
+  amount      Float
+  createdAt   DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+}
+
+model Invoice {
+  id          String   @id @default(uuid())
+  tenantId    String
+  customerId  String
+  description String?
+  amount      Float
+  status      String   @default("unpaid")
+  createdAt   DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+}
+
+/*------------------------------
+ * ---------Marketing-----------
+ * ---------------------------*/
+
+model Campaign {
+  id        String    @id @default(uuid())
   tenantId  String
-  contactId String
-  source    String?
-  score     Int      @default(0)
-  stage     String?
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  contact   Contact  @relation(fields: [contactId], references: [id])
-  createdAt DateTime @default(now())
+  name      String
+  channel   String // email, social, sms, etc.
+  message   String?
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+
+  tenant     Tenant              @relation(fields: [tenantId], references: [id])
+  metrics    CampaignMetric[]
+  recipients CampaignRecipient[]
+}
+
+model CampaignRecipient {
+  id         String  @id @default(uuid())
+  campaignId String
+  customerId String
+  status     String? // sent, opened, clicked, converted
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+}
+
+model CampaignMetric {
+  id          String @id @default(uuid())
+  campaignId  String
+  opens       Int    @default(0)
+  clicks      Int    @default(0)
+  conversions Int    @default(0)
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+}
+
+/*-----------------------------
+ * -------Integrations---------
+ * ---------------------------*/
+
+model ExternalAccount {
+  id         String   @id @default(uuid())
+  tenantId   String
+  provider   String
+  externalId String
+  token      Json
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 }

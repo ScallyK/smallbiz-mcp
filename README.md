@@ -32,6 +32,26 @@ Install dependencies:
 npm install
 ```
 
+Build the container:
+```bash
+docker compose up -d
+```
+
+Verify images:
+```bash
+docker compose logs postgres
+```
+
+Run Prisma migration:
+```bash
+npx prisma migrate dev --name init
+```
+
+Update the Prisma client:
+```bash
+npx prisma generate
+```
+
 Build the server:
 ```bash
 npm run build
@@ -40,6 +60,16 @@ npm run build
 For development with auto-rebuild:
 ```bash
 npm run watch
+```
+
+To test with MCP Inspector:
+
+```bash
+npm run build
+```
+
+```bash
+npx @modelcontextprotocol/inspector build/index.js
 ```
 
 ## Installation
