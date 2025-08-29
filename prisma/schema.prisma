@@ -42,9 +42,10 @@ model User {
 model Customer {
   id          String   @id @default(uuid())
   tenantId    String
+  firstName   String?
+  lastName    String?
   email       String?  @unique
   phone       String?
-  name        String?
   tags        String[]
   preferences Json?
 

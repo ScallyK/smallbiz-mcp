@@ -1,4 +1,5 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SquareClient, SquareEnvironment, SquareError } from "square";
 import { PrismaClient } from "@prisma/client";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -6,12 +7,24 @@ import { z } from "zod";
 // Init Prisma Client
 const prisma = new PrismaClient();
 
+// Init Square Client
+const squareClient = new SquareClient({
+  token: process.env.SQUARE_ACCESS_TOKEN,
+  environment: SquareEnvironment.Sandbox,
+});
+
 // Init MCP Server
 const smallbiz_MCP = new McpServer({
   name: "smallbiz-mcp",
   version: "0.1.0",
   capabilities: {
-    resources: {},
+    resources: {
+      "lookup-square-customer-by-email": {
+        description: "Lookup a Square customer by email address",
+        uriTemplate: "square://customer/{email}",
+        mimeTypes: ["application/json"],
+      },
+    },
     tools: {},
   },
 });
@@ -23,10 +36,6 @@ const smallbiz_MCP = new McpServer({
 // ping: always returns pong.
 
 // healthcheck: verifies DB connection and returns status.
-
-// search-docs: search internal knowledge base.
-
-// list-resources: enumerates all available resources (users, leads, etc).
 
 // Basic ping tool
 smallbiz_MCP.tool(
@@ -57,21 +66,21 @@ smallbiz_MCP.tool(
     let dbStatus = "fail";
 
     try {
-      
+
       await prisma.$queryRaw`SELECT 1;`
       dbStatus = "ok";
 
-    } 
-    
+    }
+
     catch (error) {
       dbStatus = `Connection failed. Error:  ${error}`
     }
 
     return {
       content: [
-        { 
-          type: "text", 
-          text: `Database status: ${dbStatus}` 
+        {
+          type: "text",
+          text: `Database status: ${dbStatus}`
         }
       ],
       structuredContent: { dbStatus }
@@ -79,58 +88,482 @@ smallbiz_MCP.tool(
   }
 );
 
-// list-resources
-smallbiz_MCP.tool(
-  "list-resources",
-  "List all available resources (users, leads, campaigns)",
+/* -----------------------------------------------------
+----------------Square Tools & Resources----------------
+----------------------------------------------------- */
 
+// Search for square customer by email
+smallbiz_MCP.registerResource(
+  "lookup-square-customer-by-email",
+  new ResourceTemplate("square://customer/{email}", { list: undefined }),
   {
-    description: "List all available resources (users, leads, campaigns)",
-    inputSchema: z.object({
-      type: z.enum(["users", "leads", "campaigns"]).optional(),
-    }),
-    outputSchema: z.object({
-      resources: z.array(
-        z.object({
-          id: z.string(),
-          name: z.string(),
-          type: z.string(),
-        })
-      )
-    }),
+    title: "Square Customer Lookup (Email)",
+    description: "Lookup a Square customer by email address",
+    mimeType: "application/json"
   },
+  async (uri, { email }) => {
 
-  // query all possible tables and return entries as requested
-  async () => {
+    email = Array.isArray(email) ? email[0] : email;
+    email = decodeURIComponent(email);
 
-    const [users, leads, campaigns, customers] = await Promise.all([
-      prisma.user.findMany({ select: { id: true, name: true } }),
-      prisma.lead.findMany({ select: { id: true, name: true } }),
-      prisma.campaign.findMany({ select: { id: true, name: true } }),
-      prisma.customer.findMany({ select: { id: true, name: true } }),
-    ]);
+    try {
 
-    type Resource = { id: string; name: string; type: string };
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return {
+          contents: [
+            { uri: uri.href, text: `Please provide a valid email address.` },
+          ],
+        };
+      }
 
-    const resources: Resource[] = [
-      ...users.map((u: { id: any; name: any; }) => ({ id: String(u.id), name: u.name, type: "user" })),
-      ...leads.map((l: { id: any; name: any; }) => ({ id: String(l.id), name: l.name, type: "lead" })),
-      ...campaigns.map((c: { id: any; name: any; }) => ({ id: String(c.id), name: c.name, type: "campaign" })),
-      ...customers.map((c: { id: any; name: any; }) => ({ id: String(c.id), name: c.name, type: "customer" })),
-    ];
+      if (!email) {
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              text: "Please provide an email address to search.",
+            },
+          ],
+        };
+      }
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Found ${resources.length} resources.`,
+      const response = await squareClient.customers.search({
+        query: {
+          filter: {
+            emailAddress: {
+              exact: Array.isArray(email) ? email[0] : email,
+            },
+          },
         },
-      ],
-      structuredContent: { resources },
-    };
+      });
+
+      const customers = response.customers || [];
+
+      const safeCustomers = customers.map(customer => ({
+        id: customer.id,
+        email: customer.emailAddress,
+        phone: customer.phoneNumber,
+        givenName: customer.givenName,
+        familyName: customer.familyName,
+      }));
+
+      if (customers.length === 0) {
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              text: `No customer found for email: ${email}`,
+            },
+          ],
+        };
+      }
+
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            text: JSON.stringify(safeCustomers, null, 2),
+            structuredContent: safeCustomers,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            text: `Error looking up customer: ${typeof error === "object" && error !== null && "message" in error
+              ? (error as any).message
+              : String(error)
+              }`,
+          },
+        ],
+      };
+    }
   }
 );
 
+// List all Square customers
+smallbiz_MCP.registerResource(
+  "list-square-customers",
+  "square://customer/listAll",
+  {
+    title: "List Square Customers",
+    description: "Retrieve a list of all Square customers",
+    mimeType: "application/json"
+  },
+  async (uri) => {
+    try {
+
+      const response = await squareClient.customers.list();
+
+      const customers = response.data || [];
+
+      const safeCustomers = customers.map(customer => ({
+        id: customer.id,
+        firstName: customer.givenName,
+        lastName: customer.familyName,
+        phoneNumber: customer.phoneNumber,
+        email: customer.emailAddress,
+        createdAt: customer.createdAt,
+      }));
+
+      if (safeCustomers.length === 0) {
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              text: `No customers found! Get out there and start making some sales, dagnabit!`,
+            },
+          ],
+        };
+      }
+
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            text: JSON.stringify(safeCustomers, null, 2),
+            structuredContent: safeCustomers,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            text: `Error listing customers: ${typeof error === "object" && error !== null && "message" in error
+              ? (error as any).message
+              : String(error)
+              }`,
+          },
+        ],
+      };
+    }
+  }
+);
+
+// Search for Square invoice by customer ID and location ID
+smallbiz_MCP.registerResource(
+  "lookup-square-invoice-by-customer",
+  new ResourceTemplate("square://invoice/{locationID}/{customerID}", { list: undefined }),
+  {
+    title: "Square Invoice Lookup (Customer ID)",
+    description: "Lookup a Square invoice by customer ID and location ID",
+    mimeType: "application/json"
+  },
+  async (uri, { locationID, customerID }) => {
+
+    if (!locationID || !customerID) {
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            text: "Both locationID and customerID are required to search invoices.",
+          },
+        ],
+      };
+    }
+
+
+    try {
+
+      const response = await squareClient.invoices.search({
+        query: {
+          filter: {
+
+            locationIds: [Array.isArray(locationID) ? locationID[0] : locationID],
+
+            customerIds: [Array.isArray(customerID) ? customerID[0] : customerID],
+          },
+        },
+      });
+
+      const invoice = response.invoices || [];
+
+      const safeInvoice = invoice.map(invoice => ({
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        title: invoice.title,
+        status: invoice.status,
+        customerFirstName: invoice.primaryRecipient?.givenName,
+        customerLastName: invoice.primaryRecipient?.familyName,
+        customerPhoneNumber: invoice.primaryRecipient?.phoneNumber,
+        customerEmail: invoice.primaryRecipient?.emailAddress,
+        createdAt: invoice.createdAt,
+        dueDate: invoice.paymentRequests?.[0]?.dueDate,
+        totalAmount: invoice.paymentRequests?.[0]?.computedAmountMoney
+      }));
+
+      if (invoice.length === 0) {
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              text: `No invoice found for: ${locationID} and ${customerID}`,
+            },
+          ],
+        };
+      }
+
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            text: JSON.stringify(safeInvoice, null, 2),
+            structuredContent: safeInvoice,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            text: `Error looking up invoice: ${typeof error === "object" && error !== null && "message" in error
+              ? (error as any).message
+              : String(error)
+              }`,
+          },
+        ],
+      };
+    }
+  }
+);
+
+// Search for Square invoice by invoice ID
+smallbiz_MCP.registerResource(
+  "lookup-square-invoice-by-id",
+  new ResourceTemplate("square://invoice/{invoiceID}", { list: undefined }),
+  {
+    title: "Square Invoice Lookup (Invoice ID)",
+    description: "Lookup a Square invoice by invoice ID",
+    mimeType: "application/json"
+  },
+  async (uri, { invoiceID }) => {
+
+    if (!invoiceID) {
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            text: "Invoice ID is required to search invoices.",
+          },
+        ],
+      };
+    }
+
+
+    try {
+
+      const response = await squareClient.invoices.get({
+        invoiceId: Array.isArray(invoiceID) ? invoiceID[0] : invoiceID,
+      });
+
+      // wrapping in array for consistency
+      const invoice = response.invoice || [];
+      const invoicesArray = Array.isArray(invoice) ? invoice : invoice ? [invoice] : [];
+
+      const safeInvoice = invoicesArray.map(invoice => ({
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        title: invoice.title,
+        status: invoice.status,
+        customerFirstName: invoice.primaryRecipient?.givenName,
+        customerLastName: invoice.primaryRecipient?.familyName,
+        customerPhoneNumber: invoice.primaryRecipient?.phoneNumber,
+        customerEmail: invoice.primaryRecipient?.emailAddress,
+        createdAt: invoice.createdAt,
+        dueDate: invoice.paymentRequests?.[0]?.dueDate,
+        totalAmount: invoice.paymentRequests?.[0]?.computedAmountMoney
+      }));
+
+      if (invoicesArray.length === 0) {
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              text: `No invoice found for: ${invoiceID}`,
+            },
+          ],
+        };
+      }
+
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            text: JSON.stringify(safeInvoice, null, 2),
+            structuredContent: safeInvoice,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            text: `Error looking up invoice: ${typeof error === "object" && error !== null && "message" in error
+              ? (error as any).message
+              : String(error)
+              }`,
+          },
+        ],
+      };
+    }
+  }
+);
+
+// List all Square invoices
+smallbiz_MCP.registerResource(
+  "list-invoices",
+  new ResourceTemplate("square://invoice/{locationId}", { list: undefined }),
+  {
+    title: "List Square Invoices",
+    description: "Rerieve a list of all Square invoices by location ID",
+    mimeType: "application/json"
+  },
+  async (uri, { locationId }) => {
+
+    if (!locationId) {
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            text: "Location Id is required to search invoices.",
+          },
+        ],
+      };
+    }
+
+
+    try {
+
+      const response = await squareClient.invoices.list({
+        locationId: Array.isArray(locationId) ? locationId[0] : locationId,
+      });
+
+      const invoices = response.data || [];
+
+      const safeInvoice = invoices.map(invoice => ({
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        title: invoice.title,
+        status: invoice.status,
+        customerFirstName: invoice.primaryRecipient?.givenName,
+        customerLastName: invoice.primaryRecipient?.familyName,
+        customerPhoneNumber: invoice.primaryRecipient?.phoneNumber,
+        customerEmail: invoice.primaryRecipient?.emailAddress,
+        createdAt: invoice.createdAt,
+        dueDate: invoice.paymentRequests?.[0]?.dueDate,
+        totalAmount: invoice.paymentRequests?.[0]?.computedAmountMoney
+      }));
+
+      if (invoices.length === 0) {
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              text: `No invoices found for location ID: ${locationId}.`,
+            },
+          ],
+        };
+      }
+
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            text: JSON.stringify(safeInvoice, null, 2),
+            structuredContent: safeInvoice,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            text: `Error listing invoices: ${typeof error === "object" && error !== null && "message" in error
+              ? (error as any).message
+              : String(error)
+              }`,
+          },
+        ],
+      };
+    }
+  }
+);
+
+smallbiz_MCP.tool(
+  "create-invoice",
+  "Create a new invoice in Square for a customer given their customer ID.",
+  {
+    locationID: z.string().describe("The Square location ID"),
+    invoiceTitle: z.string().describe("Title of the invoice"),
+    invoiceDescription: z.string().optional().describe("Description of the invoice"),
+    invoiceScheduledDate: z.string().describe("Scheduled date for the invoice in ISO format (YYYY-MM-DD)"),
+    primaryRecipientID: z.string().describe("Customer ID of the primary recipient"),
+  },
+  async (
+    {
+      locationID,
+      invoiceTitle,
+      invoiceDescription,
+      invoiceScheduledDate,
+      primaryRecipientID,
+    },
+    _extra
+  ) => {
+    try {
+      const invoiceData: any = {
+        invoice: {
+          deliveryMethod: "EMAIL",
+          locationId: locationID,
+          primaryRecipient: { customerId: primaryRecipientID },
+          title: invoiceTitle,
+          description: invoiceDescription || "",
+          saleOrServiceDate: new Date().toISOString().split("T")[0], // current date
+          scheduledAt: invoiceScheduledDate || new Date().toISOString(),
+          storePaymentMethodEnabled: true,
+          paymentRequests: [],
+          acceptedPaymentMethods: {
+            bankAccount: false,
+            buyNowPayLater: true,
+            cashAppPay: false,
+            squareGiftCard: false,
+          },
+        },
+      };
+
+      const response = await squareClient.invoices.create(invoiceData);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Invoice created successfully! Invoice ID: ${response.invoice?.id}`,
+          },
+        ],
+        structuredContent: { ...response },
+      };
+
+    } catch (error: any) {
+      const errorMessage =
+        error?.message || JSON.stringify(error) || "Unknown error";
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error creating invoice: ${errorMessage}`,
+          },
+        ],
+      };
+    }
+  }
+);
 
 /* --------------------------------------------
 -------------------CRM Tools------------------
@@ -212,7 +645,6 @@ smallbiz_MCP.tool(
 
 // campaign-performance: KPIs for campaigns.
 
-
 // Start MCP server
 async function main() {
   const transport = new StdioServerTransport();
@@ -224,3 +656,5 @@ main().catch((error) => {
   console.error("Fatal error in main():", error);
   process.exit(1);
 });
+
+

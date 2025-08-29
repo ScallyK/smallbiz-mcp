@@ -4,7 +4,7 @@ smallbiz-mcp is a MCP server for small business operations (calendar, CRM, sales
 
 This is a TypeScript-based MCP server that implements:
 
-- 1
+- Interfacing with Square and Google calendar data
 - 2
 - 3
 
@@ -98,6 +98,11 @@ npm run inspector
 ```
 
 The Inspector will provide a URL to access debugging tools in your browser.
+
+Run debug_tools scripts with:
+```bash
+node --loader ts-node/esm debug_tools/<script_here>
+```
 
 
 ### Other Notes:
