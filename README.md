@@ -112,3 +112,5 @@ For machines not running Windows, change the dev line in package.json to:
 "dev": "npx nodemon --watch src --ext ts --exec ts-node src/index.ts"
 
 if "npm run dev" is giving you issues.
+
+You must use npm install @modelcontextprotocol/sdk zod@3 and not zod@latest or compiler will throw errors
