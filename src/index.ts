@@ -2,16 +2,22 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
 // Tools
-import pingTool from "./tools/ping.js";
-import healthCheck from "./tools/healthCheck.js";
-import createSquareInvoice from "./tools/createSquareInvoice.js";
+import pingTool from "./tools/core/ping.js";
+import healthCheck from "./tools/core/healthCheck.js";
+import updateSquareCustomer from "./tools/square/customers/updateSquareCustomer.js";
+import deleteSquareCustomer from "./tools/square/customers/deleteSquareCustomer.js";
+import createSquareCustomer from "./tools/square/customers/createSquareCustomer.js";
+import createSquareInvoice from "./tools/square/invoices/createSquareInvoice.js";
 
 // Resources
-import lookupSquareCustomerByEmail from "./resources/lookupSquareCustomerByEmail.js";
-import listSquareCustomers from "./resources/listSquareCustomers.js";
-import lookupSquareInvoiceByCustomer from "./resources/lookupSquareInvoiceByCustomer.js";
-import lookupSquareInvoiceById from "./resources/lookupSquareInvoiceById.js";
-import listInvoices from "./resources/listInvoices.js";
+import lookupSquareCustomerByEmail from "./resources/square/customers/lookupSquareCustomerByEmail.js";
+import listSquareCustomers from "./resources/square/customers/listSquareCustomers.js";
+import lookupSquareCustomerByID from "./resources/square/customers/lookupSquareCustomerByID.js";
+import lookupSquareInvoiceByCustomer from "./resources/square/invoices/lookupSquareInvoiceByCustomer.js";
+import lookupSquareInvoiceById from "./resources/square/invoices/lookupSquareInvoiceById.js";
+import listInvoices from "./resources/square/invoices//listInvoices.js";
+import updateSquareInvoice from "./tools/square/invoices/updateSquareInvoice.js";
+import deleteSquareInvoice from "./tools/square/invoices/deleteSquareInvoice.js";
 
 // Init MCP Server
 const smallbiz_MCP = new McpServer({
@@ -46,6 +52,12 @@ healthCheck(smallbiz_MCP);
 // Search for square customer by email
 lookupSquareCustomerByEmail(smallbiz_MCP);
 
+// Search for square customer by ID
+lookupSquareCustomerByID(smallbiz_MCP);
+
+// List all Square customers
+listSquareCustomers(smallbiz_MCP);
+
 // Search for Square invoice by customer ID and location ID
 lookupSquareInvoiceByCustomer(smallbiz_MCP);
 
@@ -55,31 +67,52 @@ lookupSquareInvoiceById(smallbiz_MCP);
 // List all Square invoices
 listInvoices(smallbiz_MCP);
 
-// List all Square customers
-listSquareCustomers(smallbiz_MCP);
 
 /* -----------------------------------------------------
 -----------------------Square Tools---------------------
 ----------------------------------------------------- */
 
+// Creates a new customer in Square
+createSquareCustomer(smallbiz_MCP);
+
+// Updates a customer in Square
+updateSquareCustomer(smallbiz_MCP);
+
+// Deletes a customer from Square
+deleteSquareCustomer(smallbiz_MCP);
+
 // Creates a new invoice in Square given the below parameters.
 createSquareInvoice(smallbiz_MCP);
+
+// Updates an invoice in Square.
+updateSquareInvoice(smallbiz_MCP);
+
+// Deletes an invoice from Square
+deleteSquareInvoice(smallbiz_MCP);
 
 /* --------------------------------------------
 -------------------CRM Tools------------------
 -------------------------------------------- */
 
-// list-customers: fetches list of all customers.
+// list-customers: fetches list of all customers. DONE
 
-// get-customer: retrieve details for a customer by ID or by email.
+// get-customer: retrieve details for a customer by ID or by email. DONE
 
-// create-customer: add a new customer to the CRM.
+// create-customer: add a new customer to Square. DONE
 
-// update-customer: update customer contact info, preferences, tags, etc.
+// update-customer: update customer contact info, etc. DONE
 
-// delete-customer: archive or delete a customer record.
+// delete-customer: delete a customer record. DONE
 
-// search-customers: query customer by name, email, or tag.
+// list-invoices: fetch all invoices for a customer. DONE
+
+// get-invoice: retrieve details for a customer by ID or by email. DONE
+
+// create-invoice: generates a new invoice in Square. DONE
+
+// update-invoice: update an existing invoice in Square. DONE
+
+// delete-invoice: delete an invoice from Square. DONE
 
 /* --------------------------------------------
 -----------------Calendar Tools----------------

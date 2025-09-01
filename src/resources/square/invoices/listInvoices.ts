@@ -1,25 +1,25 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
-import squareClient from "../clients/squareClient.js";
+import squareClient from "../../../clients/squareClient.js";
 
-// Search for Square invoice by customer ID and location ID
-export default function lookupSquareInvoiceByCustomer(mcpServerName: McpServer) {
+// List all Square invoices
+export default function listInvoices(mcpServerName: McpServer) {
 
     mcpServerName.registerResource(
-        "lookup-square-invoice-by-customer",
-        new ResourceTemplate("square://invoice/{locationID}/{customerID}", { list: undefined }),
+        "list-invoices",
+        new ResourceTemplate("square://invoice/{locationId}", { list: undefined }),
         {
-            title: "Square Invoice Lookup (Customer ID)",
-            description: "Lookup a Square invoice by customer ID and location ID",
+            title: "List Square Invoices",
+            description: "Rerieve a list of all Square invoices by location ID",
             mimeType: "application/json"
         },
-        async (uri, { locationID, customerID }) => {
+        async (uri, { locationId }) => {
 
-            if (!locationID || !customerID) {
+            if (!locationId) {
                 return {
                     contents: [
                         {
                             uri: uri.href,
-                            text: "Both locationID and customerID are required to search invoices.",
+                            text: "Location Id is required to search invoices.",
                         },
                     ],
                 };
@@ -28,20 +28,13 @@ export default function lookupSquareInvoiceByCustomer(mcpServerName: McpServer) 
 
             try {
 
-                const response = await squareClient.invoices.search({
-                    query: {
-                        filter: {
-
-                            locationIds: [Array.isArray(locationID) ? locationID[0] : locationID],
-
-                            customerIds: [Array.isArray(customerID) ? customerID[0] : customerID],
-                        },
-                    },
+                const response = await squareClient.invoices.list({
+                    locationId: Array.isArray(locationId) ? locationId[0] : locationId,
                 });
 
-                const invoice = response.invoices || [];
+                const invoices = response.data || [];
 
-                const safeInvoice = invoice.map(invoice => ({
+                const safeInvoice = invoices.map(invoice => ({
                     id: invoice.id,
                     invoiceNumber: invoice.invoiceNumber,
                     title: invoice.title,
@@ -55,12 +48,12 @@ export default function lookupSquareInvoiceByCustomer(mcpServerName: McpServer) 
                     totalAmount: invoice.paymentRequests?.[0]?.computedAmountMoney
                 }));
 
-                if (invoice.length === 0) {
+                if (invoices.length === 0) {
                     return {
                         contents: [
                             {
                                 uri: uri.href,
-                                text: `No invoice found for: ${locationID} and ${customerID}`,
+                                text: `No invoices found for location ID: ${locationId}.`,
                             },
                         ],
                     };
@@ -80,7 +73,7 @@ export default function lookupSquareInvoiceByCustomer(mcpServerName: McpServer) 
                     contents: [
                         {
                             uri: uri.href,
-                            text: `Error looking up invoice: ${typeof error === "object" && error !== null && "message" in error
+                            text: `Error listing invoices: ${typeof error === "object" && error !== null && "message" in error
                                 ? (error as any).message
                                 : String(error)
                                 }`,
@@ -90,4 +83,5 @@ export default function lookupSquareInvoiceByCustomer(mcpServerName: McpServer) 
             }
         }
     );
+
 }

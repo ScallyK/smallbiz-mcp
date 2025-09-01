@@ -1,10 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Square } from "square";
 import { z } from "zod";
-import squareClient from "../clients/squareClient.js";
-import idempotencyKeyGen from "../helpers/idempotencyKeyGen.js";
-import toDateOnlyOrToday from "../helpers/toDateOnlyOrToday.js";
-import toIsoOrNow from "../helpers/toIsoOrNow.js";
+import squareClient from "../../../clients/squareClient.js";
+import idempotencyKeyGen from "../../../helpers/idempotencyKeyGen.js";
+import toDateOnlyOrToday from "../../../helpers/toDateOnlyOrToday.js";
+import toIsoOrNow from "../../../helpers/toIsoOrNow.js";
 
 // Creates a new invoice in Square
 export default function createSquareInvoice(mcpServerName: McpServer) {

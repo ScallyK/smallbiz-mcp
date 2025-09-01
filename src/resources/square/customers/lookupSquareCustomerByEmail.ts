@@ -1,5 +1,5 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
-import squareClient from "../clients/squareClient.js";
+import squareClient from "../../../clients/squareClient.js";
 
 // Search for square customer by email
 export default function lookupSquareCustomerByEmail(mcpServerName: McpServer) {

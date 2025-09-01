@@ -1,5 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import prisma from "../clients/prismaClient.js";
+import prisma from "../../clients/prismaClient.js";
 
 // Verifies that the server and backend dependencies are healthy.
 export default function healthCheck(mcpServerName: McpServer) {

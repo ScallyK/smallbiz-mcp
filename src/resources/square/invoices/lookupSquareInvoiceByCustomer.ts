@@ -1,25 +1,25 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
-import squareClient from "../clients/squareClient.js";
+import squareClient from "../../../clients/squareClient.js";
 
-// Search for Square invoice by invoice ID
-export default function lookupSquareInvoiceById(mcpServerName: McpServer) {
+// Search for Square invoice by customer ID and location ID
+export default function lookupSquareInvoiceByCustomer(mcpServerName: McpServer) {
 
     mcpServerName.registerResource(
-        "lookup-square-invoice-by-id",
-        new ResourceTemplate("square://invoice/{invoiceID}", { list: undefined }),
+        "lookup-square-invoice-by-customer",
+        new ResourceTemplate("square://invoice/{locationID}/{customerID}", { list: undefined }),
         {
-            title: "Square Invoice Lookup (Invoice ID)",
-            description: "Lookup a Square invoice by invoice ID",
+            title: "Square Invoice Lookup (Customer ID)",
+            description: "Lookup a Square invoice by customer ID and location ID",
             mimeType: "application/json"
         },
-        async (uri, { invoiceID }) => {
+        async (uri, { locationID, customerID }) => {
 
-            if (!invoiceID) {
+            if (!locationID || !customerID) {
                 return {
                     contents: [
                         {
                             uri: uri.href,
-                            text: "Invoice ID is required to search invoices.",
+                            text: "Both locationID and customerID are required to search invoices.",
                         },
                     ],
                 };
@@ -28,15 +28,20 @@ export default function lookupSquareInvoiceById(mcpServerName: McpServer) {
 
             try {
 
-                const response = await squareClient.invoices.get({
-                    invoiceId: Array.isArray(invoiceID) ? invoiceID[0] : invoiceID,
+                const response = await squareClient.invoices.search({
+                    query: {
+                        filter: {
+
+                            locationIds: [Array.isArray(locationID) ? locationID[0] : locationID],
+
+                            customerIds: [Array.isArray(customerID) ? customerID[0] : customerID],
+                        },
+                    },
                 });
 
-                // wrapping in array for consistency
-                const invoice = response.invoice || [];
-                const invoicesArray = Array.isArray(invoice) ? invoice : invoice ? [invoice] : [];
+                const invoice = response.invoices || [];
 
-                const safeInvoice = invoicesArray.map(invoice => ({
+                const safeInvoice = invoice.map(invoice => ({
                     id: invoice.id,
                     invoiceNumber: invoice.invoiceNumber,
                     title: invoice.title,
@@ -50,12 +55,12 @@ export default function lookupSquareInvoiceById(mcpServerName: McpServer) {
                     totalAmount: invoice.paymentRequests?.[0]?.computedAmountMoney
                 }));
 
-                if (invoicesArray.length === 0) {
+                if (invoice.length === 0) {
                     return {
                         contents: [
                             {
                                 uri: uri.href,
-                                text: `No invoice found for: ${invoiceID}`,
+                                text: `No invoice found for: ${locationID} and ${customerID}`,
                             },
                         ],
                     };
@@ -85,5 +90,4 @@ export default function lookupSquareInvoiceById(mcpServerName: McpServer) {
             }
         }
     );
-
 }

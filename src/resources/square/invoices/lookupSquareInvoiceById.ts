@@ -1,25 +1,25 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
-import squareClient from "../clients/squareClient.js";
+import squareClient from "../../../clients/squareClient.js";
 
-// List all Square invoices
-export default function listInvoices(mcpServerName: McpServer) {
+// Search for Square invoice by invoice ID
+export default function lookupSquareInvoiceById(mcpServerName: McpServer) {
 
     mcpServerName.registerResource(
-        "list-invoices",
-        new ResourceTemplate("square://invoice/{locationId}", { list: undefined }),
+        "lookup-square-invoice-by-id",
+        new ResourceTemplate("square://invoice/{invoiceID}", { list: undefined }),
         {
-            title: "List Square Invoices",
-            description: "Rerieve a list of all Square invoices by location ID",
+            title: "Square Invoice Lookup (Invoice ID)",
+            description: "Lookup a Square invoice by invoice ID",
             mimeType: "application/json"
         },
-        async (uri, { locationId }) => {
+        async (uri, { invoiceID }) => {
 
-            if (!locationId) {
+            if (!invoiceID) {
                 return {
                     contents: [
                         {
                             uri: uri.href,
-                            text: "Location Id is required to search invoices.",
+                            text: "Invoice ID is required to search invoices.",
                         },
                     ],
                 };
@@ -28,13 +28,15 @@ export default function listInvoices(mcpServerName: McpServer) {
 
             try {
 
-                const response = await squareClient.invoices.list({
-                    locationId: Array.isArray(locationId) ? locationId[0] : locationId,
+                const response = await squareClient.invoices.get({
+                    invoiceId: Array.isArray(invoiceID) ? invoiceID[0] : invoiceID,
                 });
 
-                const invoices = response.data || [];
+                // wrapping in array for consistency
+                const invoice = response.invoice || [];
+                const invoicesArray = Array.isArray(invoice) ? invoice : invoice ? [invoice] : [];
 
-                const safeInvoice = invoices.map(invoice => ({
+                const safeInvoice = invoicesArray.map(invoice => ({
                     id: invoice.id,
                     invoiceNumber: invoice.invoiceNumber,
                     title: invoice.title,
@@ -48,12 +50,12 @@ export default function listInvoices(mcpServerName: McpServer) {
                     totalAmount: invoice.paymentRequests?.[0]?.computedAmountMoney
                 }));
 
-                if (invoices.length === 0) {
+                if (invoicesArray.length === 0) {
                     return {
                         contents: [
                             {
                                 uri: uri.href,
-                                text: `No invoices found for location ID: ${locationId}.`,
+                                text: `No invoice found for: ${invoiceID}`,
                             },
                         ],
                     };
@@ -73,7 +75,7 @@ export default function listInvoices(mcpServerName: McpServer) {
                     contents: [
                         {
                             uri: uri.href,
-                            text: `Error listing invoices: ${typeof error === "object" && error !== null && "message" in error
+                            text: `Error looking up invoice: ${typeof error === "object" && error !== null && "message" in error
                                 ? (error as any).message
                                 : String(error)
                                 }`,
