@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import squareClient from "../clients/squareClient.js";
+
 
 // Template for creating new MCP tools
 export default function mcpToolTemplate(mcpServerName: McpServer) {

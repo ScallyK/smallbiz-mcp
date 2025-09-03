@@ -114,3 +114,10 @@ For machines not running Windows, change the dev line in package.json to:
 if "npm run dev" is giving you issues.
 
 You must use npm install @modelcontextprotocol/sdk zod@3 and not zod@latest or compiler will throw errors
+
+For Google Calendar itegration:
+
+- [Follow these steps](https://developers.google.com/workspace/calendar/api/quickstart/nodejs)
+- Create an external app
+- Add your email as a test user
+- If you subscribe to Google Workspace, you can set the app as internal.
