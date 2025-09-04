@@ -2,6 +2,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import authorizeGoogleClient from "../../clients/googleClient.js";
 import { google } from 'googleapis';
 import { z } from "zod";
+import { zRFC3339 } from "../../helpers/RFC3339.js";
+
 
 // Creates a Google Calendar event
 export default function updateGoogleCalendarEvent(mcpServerName: McpServer) {
@@ -15,12 +17,10 @@ export default function updateGoogleCalendarEvent(mcpServerName: McpServer) {
                 eventId: z.string(),
                 eventTitle: z.string().optional(),
                 eventDescription: z.string().optional(),
-                eventStart: z.string().refine((date) => !isNaN(Date.parse(date)), {
-                    message: "Invalid start date",
-                }).optional(),
-                eventEnd: z.string().refine((date) => !isNaN(Date.parse(date)), {
-                    message: "Invalid end date",
-                }).optional(),
+                eventStartDate: z.string(),
+                eventStartTime: z.string(),
+                eventEndDate: z.string(),
+                eventEndTime: z.string(),
                 attendees: z.array(z.string().email()).optional(),
                 timeZone: z.string().optional(),
             },
@@ -29,10 +29,11 @@ export default function updateGoogleCalendarEvent(mcpServerName: McpServer) {
             eventId,
             eventTitle,
             eventDescription,
-            eventStart,
-            eventEnd,
+            eventStartDate,
+            eventStartTime,
+            eventEndDate,
+            eventEndTime,
             attendees,
-            timeZone,
         }) => {
 
             try {
@@ -47,12 +48,10 @@ export default function updateGoogleCalendarEvent(mcpServerName: McpServer) {
                         description: eventDescription,
                         attendees: attendees ? attendees.map(email => ({ email })) : [],
                         start: {
-                            dateTime: eventStart,
-                            timeZone: timeZone || "America/Central"
+                            dateTime: `${eventStartDate}T${eventStartTime}:00Z`,
                         },
                         end: {
-                            dateTime: eventEnd,
-                            timeZone: timeZone || "America/Central"
+                            dateTime: `${eventEndDate}T${eventEndTime}:00Z`,
                         }
                     }
                 });

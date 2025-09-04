@@ -32,7 +32,10 @@ export default function createSquareCustomer(mcpServerName: McpServer) {
                     sublocality_2: z.string(), // A civil region within the address's locality, if any.
                     // A civil region within the address's locality, if any.
                 }).optional(),
-                phoneNumber: zPhoneNumber.optional(),
+                phoneNumber: zPhoneNumber.optional().refine(
+                    (val) => !val || /^\+\d{1,15}$/.test(val),
+                    { message: "Phone number must be formatted as E.164, e.g., +14155552671" }
+                ),
                 referenceId: z.string().optional(),
                 note: z.string().optional(),
             },

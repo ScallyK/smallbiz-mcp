@@ -121,3 +121,42 @@ For Google Calendar itegration:
 - Create an external app
 - Add your email as a test user
 - If you subscribe to Google Workspace, you can set the app as internal.
+
+
+/* --------------------------------------------
+-------------------Square Tools------------------
+-------------------------------------------- */
+
+// list-customers: fetches list of all customers. DONE
+
+// get-customer: retrieve details for a customer by ID or by email. DONE
+
+// create-customer: add a new customer to Square. DONE
+
+// update-customer: update customer contact info, etc. DONE
+
+// delete-customer: delete a customer record. DONE
+
+// list-invoices: fetch all invoices for a customer. DONE
+
+// get-invoice: retrieve details for a customer by ID or by email. DONE
+
+// create-invoice: generates a new invoice in Square. DONE
+
+// update-invoice: update an existing invoice in Square. DONE
+
+// delete-invoice: delete an invoice from Square. DONE
+
+/* ---------------------------------------------------
+-----------------Google Calendar Tools----------------
+--------------------------------------------------- */
+
+// list-events: fetch the next 30 upcoming events. DONE
+
+// get-event: retrieve details for a specific event by ID. DONE
+
+// create-event: schedule a meeting/event with details. DONE
+
+// update-event: modify an event. DONE
+
+// delete-event: cancel/remove an event. DONE

@@ -14,23 +14,21 @@ export default function createGoogleCalendarEvent(mcpServerName: McpServer) {
             inputSchema: {
                 eventTitle: z.string(),
                 eventDescription: z.string(),
-                eventStart: z.string().refine((date) => !isNaN(Date.parse(date)), {
-                    message: "Invalid start date",
-                }),
-                eventEnd: z.string().refine((date) => !isNaN(Date.parse(date)), {
-                    message: "Invalid end date",
-                }),
+                eventStartDate: z.string(),
+                eventStartTime: z.string(),
+                eventEndDate: z.string(),
+                eventEndTime: z.string(),
                 attendees: z.array(z.string().email()),
-                timeZone: z.string().optional(),
             },
         },
         async ({
             eventTitle,
             eventDescription,
-            eventStart,
-            eventEnd,
+            eventStartDate,
+            eventStartTime,
+            eventEndDate,
+            eventEndTime,
             attendees,
-            timeZone,
         }) => {
 
             try {
@@ -44,12 +42,10 @@ export default function createGoogleCalendarEvent(mcpServerName: McpServer) {
                         description: eventDescription,
                         attendees: attendees.map(email => ({ email })),
                         start: {
-                            dateTime: eventStart,
-                            timeZone: timeZone || "America/Central"
+                            dateTime: `${eventStartDate}T${eventStartTime}:00Z`,
                         },
                         end: {
-                            dateTime: eventEnd,
-                            timeZone: timeZone || "America/Central"
+                            dateTime: `${eventEndDate}T${eventEndTime}:00Z`,
                         }
                     }
                 });
