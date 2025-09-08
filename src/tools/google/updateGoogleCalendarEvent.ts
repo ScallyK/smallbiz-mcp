@@ -2,8 +2,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import authorizeGoogleClient from "../../clients/googleClient.js";
 import { google } from 'googleapis';
 import { z } from "zod";
-import { zRFC3339 } from "../../helpers/RFC3339.js";
-
 
 // Creates a Google Calendar event
 export default function updateGoogleCalendarEvent(mcpServerName: McpServer) {

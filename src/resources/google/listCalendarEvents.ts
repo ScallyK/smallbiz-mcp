@@ -3,7 +3,7 @@ import authorizeGoogleClient from "../../clients/googleClient.js";
 import { calendar_v3 } from 'googleapis';
 import { google } from 'googleapis';
 
-// Lists 10 upcoming Google Calendar events
+// Lists 30 upcoming Google Calendar events
 export default function listCalendarEvents(mcpServerName: McpServer) {
 
     mcpServerName.registerResource(

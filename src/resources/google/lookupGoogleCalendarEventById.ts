@@ -1,6 +1,5 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import authorizeGoogleClient from "../../clients/googleClient.js";
-import { calendar_v3 } from 'googleapis';
 import { google } from 'googleapis';
 
 // Search for Google Calendar event by ID
