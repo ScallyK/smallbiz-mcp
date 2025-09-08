@@ -1,12 +1,13 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import squareClient from "../../../clients/squareClient.js";
+import normalizeBigInt from "../../../helpers/normalizeBigInt.js";
 
 // Search for Square invoice by invoice ID
 export default function lookupSquareInvoiceById(mcpServerName: McpServer) {
 
     mcpServerName.registerResource(
         "lookup-square-invoice-by-id",
-        new ResourceTemplate("square://invoice/{invoiceID}", { list: undefined }),
+        new ResourceTemplate("square://invoices/by-id/{invoiceID}", { list: undefined }),
         {
             title: "Square Invoice Lookup (Invoice ID)",
             description: "Lookup a Square invoice by invoice ID",
@@ -25,11 +26,13 @@ export default function lookupSquareInvoiceById(mcpServerName: McpServer) {
                 };
             }
 
+            // Decode since ID #s can be weird
+            const decodedInvoiceId = decodeURIComponent(Array.isArray(invoiceID) ? invoiceID[0] : invoiceID);
 
             try {
 
                 const response = await squareClient.invoices.get({
-                    invoiceId: Array.isArray(invoiceID) ? invoiceID[0] : invoiceID,
+                    invoiceId: decodedInvoiceId
                 });
 
                 // wrapping in array for consistency
@@ -61,12 +64,14 @@ export default function lookupSquareInvoiceById(mcpServerName: McpServer) {
                     };
                 }
 
+                const normalizedInvoice = normalizeBigInt(invoice);
+
                 return {
                     contents: [
                         {
                             uri: uri.href,
-                            text: JSON.stringify(safeInvoice, null, 2),
-                            structuredContent: safeInvoice,
+                            text: JSON.stringify(normalizedInvoice, null, 2),
+                            structuredContent: normalizedInvoice,
                         },
                     ],
                 };

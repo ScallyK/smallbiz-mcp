@@ -1,162 +1,199 @@
 # smallbiz-mcp-server
 
-smallbiz-mcp is a MCP server for small business operations (calendar, CRM, sales, marketing)
+**smallbiz-mcp** is a TypeScript-based MCP server for small business operations, including calendar, CRM, sales, and marketing.
 
-This is a TypeScript-based MCP server that implements:
+> **Note:** Currently, smallbiz implements CRM tools from Square for invoice and customer management and calendar data from Google. Additional tools and resources for sales and marketing will be added soon.
 
-- Interfacing with Square and Google calendar data
-- 2
-- 3
+---
 
 ## Features
 
-### Resources
-- List and access notes via `note://` URIs
-- Each note has a title, content and metadata
-- Plain text mime type for simple content access
+- **Google Calendar Integration**
+  - Interface with Google Calendar data
+  
+- **Square CRM**
+  - CRUD operations for Square customers
+  - CRUD operations for Square invoices
 
-### Tools
-- `create_note` - Create new text notes
-  - Takes title and content as required parameters
-  - Stores note in server state
+---
 
-### Prompts
-- `summarize_notes` - Generate a summary of all stored notes
-  - Includes all note contents as embedded resources
-  - Returns structured prompt for LLM summarization
+## Resources
+
+### Square
+
+- **Customers**
+  - List all: `square://customer/listAll`
+  - Lookup by email: `square://customer/by-email/{email}`
+  - Lookup by ID: `square://customer/by-id/{id}`
+- **Invoices**
+  - List by location: `square://invoices/by-location/{locationId}`
+  - Lookup by customer: `square://invoices/by-customer/{locationID}/{customerID}`
+  - Lookup by ID: `square://invoices/by-id/{invoiceID}`
+
+### Google
+
+- List next 30 events: `google://calendar/events/list`
+- Lookup event: `google://calendar/event/{eventId}`
+
+---
+
+## Tools
+
+### Core
+
+- **`ping`**  
+  Basic ping tool. Always returns `'pong'`.
+- **`healthcheck`**  
+  Verifies server and backend dependencies (Redis, Postgres).
+
+### Square
+
+- **`createSquareCustomer`**  
+  Create a customer in Square.  
+  _Parameters:_ givenName, familyName, emailAddress, address, phoneNumber, referenceId, note  
+  _Returns:_ Confirmation with customer ID
+
+- **`updateSquareCustomer`**  
+  Update a Square customer.  
+  _Parameters:_ customerId, address, birthday, company_name, email_address, family_name, given_name, nickname, note, phone_number, reference_id  
+  _Returns:_ Confirmation with customer ID and timestamp
+
+- **`deleteSquareCustomer`**  
+  Delete a Square customer.  
+  _Parameters:_ customerId  
+  _Returns:_ Confirmation with customer ID
+
+- **`createSquareInvoice`**  
+  Create an invoice in Square.  
+  _Parameters:_ locationID, invoiceTitle, invoiceDescription, invoiceScheduledDate, customerId, invoiceDueDate, invoiceItems, serviceCharge, tax, discount  
+  _Returns:_ Confirmation with invoice ID
+
+- **`updateSquareInvoice`**  
+  Update a Square invoice.  
+  _Parameters:_ acceptedPaymentMethods, paymentRequests, primaryRecipient, deliveryMethod, description, invoiceNumber, locationId, orderId, saleOrServiceDate, storePaymentMethodEnabled, title  
+  _Returns:_ Confirmation with invoice ID
+
+- **`deleteSquareInvoice`**  
+  Delete a Square invoice.  
+  _Parameters:_ invoiceId  
+  _Returns:_ Confirmation with invoice ID
+
+### Google
+
+- **`createGoogleCalendarEvent`**  
+  Create a Google Calendar event.  
+  _Parameters:_ eventTitle, eventDescription, eventStartDate, eventStartTime, eventEndDate, eventEndTime, attendees  
+  _Returns:_ Confirmation, event details, and event link
+
+- **`updateGoogleCalendarEvent`**  
+  Update a Google Calendar event.  
+  _Parameters:_ eventId, eventTitle, eventDescription, eventStartDate, eventStartTime, eventEndDate, eventEndTime, attendees  
+  _Returns:_ Confirmation, event details, and event link
+
+- **`deleteGoogleCalendarEvent`**  
+  Delete a Google Calendar event.  
+  _Parameters:_ eventId  
+  _Returns:_ Confirmation
+
+---
+
+## Prompts
+
+- _TBD_
+
+---
 
 ## Development
 
-Install dependencies:
+**Install dependencies:**
 ```bash
 npm install
 ```
 
-Build the container:
+**Build the container:**
 ```bash
 docker compose up -d
 ```
 
-Verify images:
+**Verify images:**
 ```bash
 docker compose logs postgres
 ```
 
-Run Prisma migration:
+**Run Prisma migration:**
 ```bash
 npx prisma migrate dev --name init
 ```
 
-Update the Prisma client:
+**Update Prisma client:**
 ```bash
 npx prisma generate
 ```
 
-Build the server:
+**Build the server:**
 ```bash
 npm run build
 ```
 
-For development with auto-rebuild:
+**Development with auto-rebuild:**
 ```bash
 npm run watch
 ```
 
-To test with MCP Inspector:
-
+**Test with MCP Inspector:**
 ```bash
 npm run build
+npx @modelcontextprotocol/inspector build/mcp.js
 ```
 
-```bash
-npx @modelcontextprotocol/inspector build/index.js
-```
+---
 
 ## Installation
 
-To use with Claude Desktop, add the server config:
+To use with **Claude Desktop**, add the server config:
 
-On MacOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
+- **MacOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%/Claude/claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
     "smallbiz-mcp-server": {
-      "command": "/path/to/smallbiz-mcp-server/build/index.js"
+      "command": "/path/to/smallbiz-mcp-server/build/mcp.js"
     }
   }
 }
 ```
 
-### Debugging
+---
 
-Since MCP servers communicate over stdio, debugging can be challenging. We recommend using the [MCP Inspector](https://github.com/modelcontextprotocol/inspector), which is available as a package script:
+## Debugging
+
+MCP servers communicate over stdio, which can make debugging challenging.  
+We recommend using the [MCP Inspector](https://github.com/modelcontextprotocol/inspector):
 
 ```bash
 npm run inspector
 ```
 
-The Inspector will provide a URL to access debugging tools in your browser.
+The Inspector provides a URL for browser-based debugging tools.
 
-Run debug_tools scripts with:
+**Run debug tools scripts:**
 ```bash
 node --loader ts-node/esm debug_tools/<script_here>
 ```
 
+---
 
-### Other Notes:
+## Other Notes
 
-For machines not running Windows, change the dev line in package.json to:
-
-"dev": "npx nodemon --watch src --ext ts --exec ts-node src/index.ts"
-
-if "npm run dev" is giving you issues.
-
-You must use npm install @modelcontextprotocol/sdk zod@3 and not zod@latest or compiler will throw errors
-
-For Google Calendar itegration:
-
-- [Follow these steps](https://developers.google.com/workspace/calendar/api/quickstart/nodejs)
-- Create an external app
-- Add your email as a test user
-- If you subscribe to Google Workspace, you can set the app as internal.
-
-
-/* --------------------------------------------
--------------------Square Tools------------------
--------------------------------------------- */
-
-// list-customers: fetches list of all customers. DONE
-
-// get-customer: retrieve details for a customer by ID or by email. DONE
-
-// create-customer: add a new customer to Square. DONE
-
-// update-customer: update customer contact info, etc. DONE
-
-// delete-customer: delete a customer record. DONE
-
-// list-invoices: fetch all invoices for a customer. DONE
-
-// get-invoice: retrieve details for a customer by ID or by email. DONE
-
-// create-invoice: generates a new invoice in Square. DONE
-
-// update-invoice: update an existing invoice in Square. DONE
-
-// delete-invoice: delete an invoice from Square. DONE
-
-/* ---------------------------------------------------
------------------Google Calendar Tools----------------
---------------------------------------------------- */
-
-// list-events: fetch the next 30 upcoming events. DONE
-
-// get-event: retrieve details for a specific event by ID. DONE
-
-// create-event: schedule a meeting/event with details. DONE
-
-// update-event: modify an event. DONE
-
-// delete-event: cancel/remove an event. DONE
+- For non-Windows machines, update the dev line in `package.json` to:
+  ```
+  "dev": "npx nodemon --watch src --ext ts --exec ts-node src/index.ts"
+  ```
+- Use `npm install @modelcontextprotocol/sdk zod@3` (not `zod@latest`) to avoid compiler errors.
+- **Google Calendar integration:**
+  - [Follow these steps](https://developers.google.com/workspace/calendar/api/quickstart/nodejs)
+  - Create an external app
+  - Add your email as a test user
+  - If you subscribe to Google Workspace, you can set the app as internal.

@@ -1,12 +1,13 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import squareClient from "../../../clients/squareClient.js";
+import normalizeBigInt from "../../../helpers/normalizeBigInt.js";
 
 // List all Square invoices
 export default function listInvoices(mcpServerName: McpServer) {
 
     mcpServerName.registerResource(
         "list-invoices",
-        new ResourceTemplate("square://invoice/{locationId}", { list: undefined }),
+        new ResourceTemplate("square://invoices/by-location/{locationId}", { list: undefined }),
         {
             title: "List Square Invoices",
             description: "Rerieve a list of all Square invoices by location ID",
@@ -59,12 +60,14 @@ export default function listInvoices(mcpServerName: McpServer) {
                     };
                 }
 
+                const normalizedInvoices = normalizeBigInt(safeInvoice);
+
                 return {
                     contents: [
                         {
                             uri: uri.href,
-                            text: JSON.stringify(safeInvoice, null, 2),
-                            structuredContent: safeInvoice,
+                            text: JSON.stringify(normalizedInvoices, null, 2),
+                            structuredContent: normalizedInvoices,
                         },
                     ],
                 };

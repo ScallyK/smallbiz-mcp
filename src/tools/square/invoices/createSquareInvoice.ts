@@ -15,6 +15,7 @@ interface InvoiceItem {
   };
 }
 
+// Creates an invoice in Square
 export default function createSquareInvoice(mcpServerName: McpServer) {
   mcpServerName.registerTool(
     "create-square-invoice",

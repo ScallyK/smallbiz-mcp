@@ -4,5 +4,3 @@ build/
 .env*
 /src/generated/prisma
 /src/clients/google_creds/*
-prisma/*
-

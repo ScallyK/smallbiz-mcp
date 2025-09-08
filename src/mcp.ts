@@ -2,6 +2,7 @@
 
 - Add database integration for Square/Google requests
 - Finish containerization
+- Properly handle response codes and errors from Square/Google APIs
 
 */
 
@@ -152,19 +153,19 @@ healthCheck(smallbiz_MCP); // TESTED WORKING
 lookupSquareCustomerByEmail(smallbiz_MCP);  // TESTED WORKING
 
 // Search for square customer by ID
-lookupSquareCustomerByID(smallbiz_MCP); // Requires email???
+lookupSquareCustomerByID(smallbiz_MCP); // TESTED WORKING
 
 // List all Square customers
 listSquareCustomers(smallbiz_MCP); // TESTED WORKING
 
 // Search for Square invoice by customer ID and location ID
-lookupSquareInvoiceByCustomer(smallbiz_MCP);
+lookupSquareInvoiceByCustomer(smallbiz_MCP);  // TESTED WORKING
 
 // Search for Square invoice by invoice ID
-lookupSquareInvoiceById(smallbiz_MCP); 
+lookupSquareInvoiceById(smallbiz_MCP);  // TESTED WORKING
 
 // List all Square invoices
-listInvoices(smallbiz_MCP); // API error?
+listInvoices(smallbiz_MCP); // TESTED WORKING
 
 /* -------------------------------------------------------
 -----------------Google Calendar Resources----------------
@@ -196,7 +197,7 @@ createSquareInvoice(smallbiz_MCP); // Times out. Could be Square issue.
 updateSquareInvoice(smallbiz_MCP);
 
 // Deletes an invoice from Square
-deleteSquareInvoice(smallbiz_MCP);
+deleteSquareInvoice(smallbiz_MCP); // TESTED WORKING
 
 /* ---------------------------------------------------
 -----------------Google Calendar Tools----------------

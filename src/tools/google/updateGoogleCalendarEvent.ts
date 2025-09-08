@@ -3,7 +3,7 @@ import authorizeGoogleClient from "../../clients/googleClient.js";
 import { google } from 'googleapis';
 import { z } from "zod";
 
-// Creates a Google Calendar event
+// Updates a Google Calendar event
 export default function updateGoogleCalendarEvent(mcpServerName: McpServer) {
 
     mcpServerName.registerTool(

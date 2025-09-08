@@ -6,7 +6,7 @@ export default function lookupSquareCustomerByEmail(mcpServerName: McpServer) {
 
     mcpServerName.registerResource(
         "lookup-square-customer-by-email",
-        new ResourceTemplate("square://customer/{email}", { list: undefined }),
+        new ResourceTemplate("square://customer/by-email/{email}", { list: undefined }),
         {
             title: "Square Customer Lookup (Email)",
             description: "Lookup a Square customer by email address",
