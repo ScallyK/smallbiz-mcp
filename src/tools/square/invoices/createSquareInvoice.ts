@@ -2,9 +2,11 @@ import squareClient from "../../../clients/squareClient.js";
 import idempotencyKeyGen from "../../../helpers/idempotencyKeyGen.js";
 import toDateOnlyOrToday from "../../../helpers/toDateOnlyOrToday.js";
 import toIsoOrNow from "../../../helpers/toIsoOrNow.js";
+import normalizeBigInt from "../../../helpers/normalizeBigInt.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { Square } from "square";
+import { zCurrency } from "../../../helpers/Currency.js";
 
 interface InvoiceItem {
   name: string;
@@ -15,7 +17,6 @@ interface InvoiceItem {
   };
 }
 
-// Creates an invoice in Square
 export default function createSquareInvoice(mcpServerName: McpServer) {
   mcpServerName.registerTool(
     "create-square-invoice",
@@ -36,7 +37,7 @@ export default function createSquareInvoice(mcpServerName: McpServer) {
             quantity: z.number().min(1),
             basePriceMoney: z.object({
               amount: z.number().min(0),
-              currency: z.string().length(3),
+              currency: z.string().length(3), // chaning to zCurrency causes inspector issues
             }),
           })
         ),
@@ -44,20 +45,39 @@ export default function createSquareInvoice(mcpServerName: McpServer) {
           .object({
             name: z.string(),
             amount: z.number().min(0),
-            currency: z.string().length(3),
+            currency: zCurrency,
             taxable: z.boolean().default(true),
           })
           .optional(),
-        tax: z
+        tax: z.array(z
           .object({
             uid: z.string(),
+            appliedMoney : z.object({
+              amount: z.number().min(0),
+              currency: zCurrency,
+            }),
+            name: z.string(),
+            percentage: z.string(),
+            scope: z.enum(["ORDER", "LINE_ITEM"]),
           })
-          .optional(),
-        discount: z
+          ).optional(),
+        discount: z.array(z
           .object({
             uid: z.string(),
+            type: z.enum(["FIXED_AMOUNT", "FIXED_PERCENTAGE", "VARIABLE_PERCENTAGE", "VARIABLE_AMOUNT"]),
+            appliedMoney: z.object({
+              amount: z.number().min(0),
+              currency: zCurrency,
+            }),
+            amountMoney: z.object({
+              amount: z.number().min(0),
+              currency: zCurrency,
+            }),
+            name: z.string(),
+            percentage: z.string().optional(),
+            scope: z.enum(["ORDER", "LINE_ITEM"]),
           })
-          .optional(),
+        ).optional(),
       },
     },
     async ({
@@ -87,20 +107,16 @@ export default function createSquareInvoice(mcpServerName: McpServer) {
                 currency: item.basePriceMoney.currency.toUpperCase() as Square.Currency,
               },
               appliedDiscounts: discount
-                ? [
-                  {
-                    uid: discount.uid,
-                    discountUid: discount.uid,
-                  },
-                ]
+                ? discount.map(d => ({
+                    uid: d.uid,
+                    discountUid: d.uid,
+                  }))
                 : undefined,
               appliedTaxes: tax
-                ? [
-                  {
-                    uid: tax.uid,
-                    taxUid: tax.uid,
-                  },
-                ]
+                ? tax.map(t => ({
+                    uid: t.uid,
+                    taxUid: t.uid,
+                  }))
                 : undefined,
             })),
             serviceCharges: serviceCharge
@@ -173,6 +189,8 @@ export default function createSquareInvoice(mcpServerName: McpServer) {
         const invoiceId = invoiceResponse?.invoice?.id;
         if (!invoiceId) throw new Error("No invoice.id returned from Square");
 
+        const normalizedInvoice = normalizeBigInt(invoiceResponse);
+
         return {
           content: [
             {
@@ -180,7 +198,7 @@ export default function createSquareInvoice(mcpServerName: McpServer) {
               text: `Square invoice created successfully! Invoice ID: ${invoiceId}`,
             },
           ],
-          structuredContent: { invoiceResponse },
+          structuredContent: { normalizedInvoice },
         };
       } catch (error: any) {
         const errorMessage =

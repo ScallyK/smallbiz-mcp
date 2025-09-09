@@ -5,17 +5,17 @@
   "private": true,
   "type": "module",
   "bin": {
-    "smallbiz-mcp-server": "./build/index.js"
+    "smallbiz-mcp-server": "./build/mcp.js"
   },
   "files": [
     "build"
   ],
   "scripts": {
-    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "build": "tsc && node -e \"require('fs').chmodSync('build/mcp.js', '755')\"",
     "prepare": "npm run build",
     "watch": "tsc --watch",
-    "inspector": "npx @modelcontextprotocol/inspector build/index.js",
-    "dev": "npx nodemon --watch src --ext ts --exec \"node --loader ts-node/esm src/index.ts\""
+    "inspector": "npx @modelcontextprotocol/inspector build/mcp.js",
+    "dev": "npx nodemon --watch src --ext ts --exec \"node --loader ts-node/esm src/mcp.ts\""
   },
   "dependencies": {
     "@google-cloud/local-auth": "^2.1.0",

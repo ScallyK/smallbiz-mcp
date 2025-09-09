@@ -3,6 +3,8 @@
 - Add database integration for Square/Google requests
 - Finish containerization
 - Properly handle response codes and errors from Square/Google APIs
+- Sanitize outputs
+- Add logging
 
 */
 
@@ -185,16 +187,15 @@ lookupGoogleCalendarEventById(smallbiz_MCP); // TESTED WORKING
 createSquareCustomer(smallbiz_MCP); // TESTED WORKING
 
 // Updates a customer in Square
-updateSquareCustomer(smallbiz_MCP); // times out
-
+updateSquareCustomer(smallbiz_MCP); // TESTED WORKING.
 // Deletes a customer from Square
 deleteSquareCustomer(smallbiz_MCP); // TESTED WORKING
 
 // Creates a new invoice in Square given the below parameters.
-createSquareInvoice(smallbiz_MCP); // Times out. Could be Square issue.
+createSquareInvoice(smallbiz_MCP); // TESTED WORKING.
 
 // Updates an invoice in Square.
-updateSquareInvoice(smallbiz_MCP);
+updateSquareInvoice(smallbiz_MCP); // TESTED WORKING.
 
 // Deletes an invoice from Square
 deleteSquareInvoice(smallbiz_MCP); // TESTED WORKING

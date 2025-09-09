@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { zPhoneNumber } from "../../../helpers/PhoneNumber.js"
 import squareClient from "../../../clients/squareClient.js";
 import { zCountry } from "../../../helpers/Country.js"
+import normalizeBigInt from "../../../helpers/normalizeBigInt.js";
 import { z } from "zod";
 
 
@@ -72,14 +73,16 @@ export default function updateSquareCustomer(mcpServerName: McpServer) {
           referenceId: reference_id ? reference_id : undefined,
         })
 
+        const normalizedCustomer = normalizeBigInt(updatedCustomer);
+
         return {
           content: [
             {
               type: "text",
-              text: `Square customer updated successfully! Customer ID: ${updatedCustomer.customer?.updatedAt}`,
+              text: `Square customer updated successfully for customer ID: ${updatedCustomer.customer?.id}`,
             },
           ],
-          structuredContent: { ...updatedCustomer },
+          structuredContent: normalizedCustomer,
         };
       }
       catch (error: any) {

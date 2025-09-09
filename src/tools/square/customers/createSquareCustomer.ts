@@ -13,9 +13,6 @@ export default function createSquareCustomer(mcpServerName: McpServer) {
             title: "Create Square Customer",
             description: "Create a customer in Square.",
             inputSchema: {
-                givenName: z.string(),
-                familyName: z.string(),
-                emailAddress: z.string().email(),
                 address: z.object({
                     address_line_1: z.string(),
                     address_line_2: z.string().optional(),
@@ -30,36 +27,45 @@ export default function createSquareCustomer(mcpServerName: McpServer) {
                     postal_code: z.string(),
                     sublocality: z.string(), // A civil entity within the address's locality, if any.
                     sublocality_2: z.string(), // A civil region within the address's locality, if any.
-                    // A civil region within the address's locality, if any.
+                    sublocality_3: z.string(), // A civil region within the address's locality, if any.
                 }).optional(),
-                phoneNumber: zPhoneNumber.optional().refine(
-                    (val) => !val || /^\+\d{1,15}$/.test(val),
-                    { message: "Phone number must be formatted as E.164, e.g., +14155552671" }
-                ),
-                referenceId: z.string().optional(),
+                birthday: z.string().optional(), // YYYY-MM-DD
+                company_name: z.string().optional(),
+                email_address: z.string().email().optional(),
+                family_name: z.string().optional(),
+                given_name: z.string().optional(),
+                nickname: z.string().optional(),
                 note: z.string().optional(),
+                phone_number: zPhoneNumber.optional(),
+                reference_id: z.string().optional(),
             },
         },
         async ({
-            givenName,
-            familyName,
-            emailAddress,
             address,
-            phoneNumber,
-            referenceId,
+            birthday,
+            company_name,
+            email_address,
+            family_name,
+            given_name,
+            nickname,
             note,
+            phone_number,
+            reference_id,
         }) => {
             try {
 
                 const customer = await squareClient.customers.create({
-                    givenName: givenName,
-                    familyName: familyName,
-                    emailAddress: emailAddress,
-                    address: address,
-                    phoneNumber: phoneNumber,
-                    referenceId: referenceId,
-                    note: note,
-                });
+                    address: address ? address : undefined,
+                    birthday: birthday ? birthday : undefined,
+                    companyName: company_name ? company_name : undefined,
+                    emailAddress: email_address ? email_address : undefined,
+                    familyName: family_name ? family_name : undefined,
+                    givenName: given_name ? given_name : undefined,
+                    nickname: nickname ? nickname : undefined,
+                    note: note ? note : undefined,
+                    phoneNumber: phone_number ? phone_number : undefined,
+                    referenceId: reference_id ? reference_id : undefined,
+                })
 
                 const customerId = customer.customer?.id;
 
