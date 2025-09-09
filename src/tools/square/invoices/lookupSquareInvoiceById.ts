@@ -1,35 +1,27 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import squareClient from "../../../clients/squareClient.js";
 import normalizeBigInt from "../../../helpers/normalizeBigInt.js";
+import z from "zod";
 
 // Search for Square invoice by invoice ID
 export default function lookupSquareInvoiceById(mcpServerName: McpServer) {
 
-    mcpServerName.registerResource(
+    mcpServerName.registerTool(
         "lookup-square-invoice-by-id",
-        new ResourceTemplate("square://invoices/by-id/{invoiceID}", { list: undefined }),
         {
             title: "Square Invoice Lookup (Invoice ID)",
             description: "Lookup a Square invoice by invoice ID",
-            mimeType: "application/json"
-        },
-        async (uri, { invoiceID }) => {
-
-            if (!invoiceID) {
-                return {
-                    contents: [
-                        {
-                            uri: uri.href,
-                            text: "Invoice ID is required to search invoices.",
-                        },
-                    ],
-                };
+            inputSchema: {
+                invoiceId: z.string().min(1).describe("The ID of the invoice to look up."),
             }
-
-            // Decode since ID #s can be weird
-            const decodedInvoiceId = decodeURIComponent(Array.isArray(invoiceID) ? invoiceID[0] : invoiceID);
-
+        },
+        async ({
+            invoiceId,
+        }) => {
             try {
+
+                // Decode since ID #s can be weird
+                const decodedInvoiceId = decodeURIComponent(Array.isArray(invoiceId) ? invoiceId[0] : invoiceId);
 
                 const response = await squareClient.invoices.get({
                     invoiceId: decodedInvoiceId
@@ -55,31 +47,31 @@ export default function lookupSquareInvoiceById(mcpServerName: McpServer) {
 
                 if (invoicesArray.length === 0) {
                     return {
-                        contents: [
+                        content: [
                             {
-                                uri: uri.href,
-                                text: `No invoice found for: ${invoiceID}`,
+                                type: "text",
+                                text: `No invoice found for: ${invoiceId}`,
                             },
                         ],
                     };
                 }
 
-                const normalizedInvoice = normalizeBigInt(invoice);
+                const normalizedInvoice = normalizeBigInt(safeInvoice);
 
                 return {
-                    contents: [
+                    content: [
                         {
-                            uri: uri.href,
+                            type: "text",
                             text: JSON.stringify(normalizedInvoice, null, 2),
-                            structuredContent: normalizedInvoice,
                         },
                     ],
+                    structuredContent: normalizedInvoice,
                 };
             } catch (error) {
                 return {
-                    contents: [
+                    content: [
                         {
-                            uri: uri.href,
+                            type: "text",
                             text: `Error looking up invoice: ${typeof error === "object" && error !== null && "message" in error
                                 ? (error as any).message
                                 : String(error)

@@ -1,4 +1,5 @@
-import fs from 'fs/promises';
+import fsPromises from 'fs/promises';
+import fs from 'fs';
 import path from 'path';
 import process from 'process';
 import { authenticate } from '@google-cloud/local-auth';
@@ -12,8 +13,30 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 // created automatically when the authorization flow completes for the first
 // time.
 
-const TOKEN_PATH = path.join(process.cwd(), 'src/clients/google_creds/token.json');
-const CREDENTIALS_PATH = path.join(process.cwd(), 'src/clients/google_creds/credentials.json');
+const getCredentialPath = (filename: string, envVar?: string): string => {
+
+    // Check env vars first
+    if (envVar && process.env[envVar] && fs.existsSync(process.env[envVar])) {
+        return process.env[envVar];
+    }
+
+    // Then check standard locations
+    const srcPath = path.join(process.cwd(), 'src/clients/google_creds', filename);
+    const buildPath = path.join(process.cwd(), 'build/clients/google_creds', filename);
+
+    if (fs.existsSync(srcPath)) {
+        return srcPath;
+    }
+    else if (fs.existsSync(buildPath)) {
+        return buildPath;
+    }
+    else {
+        throw new Error(`Credential file ${filename} not found. Checked: ${srcPath}, ${buildPath}`);
+    }
+};
+
+const TOKEN_PATH = getCredentialPath('token.json', 'GOOGLE_TOKEN_PATH');
+const CREDENTIALS_PATH = getCredentialPath('credentials.json', 'GOOGLE_CREDENTIALS_PATH');
 
 /**
  * Reads previously authorized credentials from the save file.
@@ -22,10 +45,9 @@ const CREDENTIALS_PATH = path.join(process.cwd(), 'src/clients/google_creds/cred
  */
 
 async function loadSavedCredentialsIfExist(): Promise<OAuth2Client | null> {
-
     try {
 
-        const content = await fs.readFile(TOKEN_PATH);
+        const content = await fsPromises.readFile(TOKEN_PATH);
         const credentials = JSON.parse(content.toString());
         const client = google.auth.fromJSON(credentials);
 
@@ -41,6 +63,7 @@ async function loadSavedCredentialsIfExist(): Promise<OAuth2Client | null> {
         return null;
     }
 }
+
 
 /**
  * Serializes credentials to a file compatible with GoogleAuth.fromJSON.
@@ -68,10 +91,9 @@ interface AuthorizedUserPayload {
     refresh_token: string;
 }
 
-
 async function saveCredentials(client: OAuth2Client): Promise<void> {
 
-    const content = await fs.readFile(CREDENTIALS_PATH);
+    const content = await fsPromises.readFile(CREDENTIALS_PATH);
     const keys: CredentialsFile = JSON.parse(content.toString());
     const key: CredentialsKey | undefined = keys.installed || keys.web;
 
@@ -86,8 +108,9 @@ async function saveCredentials(client: OAuth2Client): Promise<void> {
         refresh_token: (client.credentials as { refresh_token: string }).refresh_token,
     };
 
-    await fs.writeFile(TOKEN_PATH, JSON.stringify(payload));
+    await fsPromises.writeFile(TOKEN_PATH, JSON.stringify(payload));
 }
+
 
 /**
  * Load or request or authorization to call APIs.

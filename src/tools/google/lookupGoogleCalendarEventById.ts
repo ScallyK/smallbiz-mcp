@@ -1,19 +1,22 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import authorizeGoogleClient from "../../clients/googleClient.js";
 import { google } from 'googleapis';
+import normalizeBigInt from "../../helpers/normalizeBigInt.js";
+import { z } from "zod";
 
 // Search for Google Calendar event by ID
 export default function lookupGoogleCalendarEventById(mcpServerName: McpServer) {
 
-    mcpServerName.registerResource(
+    mcpServerName.registerTool(
         "lookup-google-calendar-event-by-id",
-        new ResourceTemplate("google://calendar/event/{eventId}", { list: undefined }),
         {
             title: "Google Calendar Event Lookup (ID)",
             description: "Lookup a Google Calendar event by ID",
-            mimeType: "application/json"
+            inputSchema: {
+                eventId: z.string().min(1).describe("The ID of the Google Calendar event to look up."),
+            },
         },
-        async (uri, { eventId }) => {
+        async ({ eventId }) => {
 
             try {
 
@@ -27,29 +30,26 @@ export default function lookupGoogleCalendarEventById(mcpServerName: McpServer) 
 
                 const event = response.data;
                 const confirmation = response.status === 200 ? "Event found!" : "Event not found :(";
+                const normalizedEvent = normalizeBigInt(event);
 
                 return {
-                    contents: [
+                    content: [
                         {
-                            uri: uri.href,
                             type: "text",
                             text: confirmation,
                         },
                         {
-                            uri: uri.href,
-                            text: JSON.stringify(event, null, 2),
-                            structuredContent: event,
+                            type: "text",
+                            text: JSON.stringify(normalizedEvent, null, 2),
                         },
                     ],
+                    structuredContent: normalizedEvent,
                 };
-
-            }
-
-            catch (error) {
+            } catch (error) {
                 return {
-                    contents: [
+                    content: [
                         {
-                            uri: uri.href,
+                            type: "text",
                             text: `Error looking up event: ${typeof error === "object" && error !== null && "message" in error
                                 ? (error as any).message
                                 : String(error)

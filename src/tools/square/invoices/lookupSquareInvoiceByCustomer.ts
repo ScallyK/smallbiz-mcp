@@ -1,48 +1,38 @@
-import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import z from "zod";
 import squareClient from "../../../clients/squareClient.js";
 import normalizeBigInt from "../../../helpers/normalizeBigInt.js";
 
 // Search for Square invoice by customer ID and location ID
 export default function lookupSquareInvoiceByCustomer(mcpServerName: McpServer) {
 
-    mcpServerName.registerResource(
+    mcpServerName.registerTool(
         "lookup-square-invoice-by-customer",
-        new ResourceTemplate("square://invoices/by-customer/{locationID}/{customerID}", { list: undefined }),
         {
             title: "Square Invoice Lookup (Customer ID)",
             description: "Lookup a Square invoice by customer ID and location ID",
-            mimeType: "application/json"
-        },
-        async (uri, { locationID, customerID }) => {
-
-            if (!locationID || !customerID) {
-                return {
-                    contents: [
-                        {
-                            uri: uri.href,
-                            text: "Both locationID and customerID are required to search invoices.",
-                        },
-                    ],
-                };
+            inputSchema: {
+                locationId: z.string().min(1).describe("The ID of the location associated with the invoice."),
+                customerId: z.string().min(1).describe("The ID of the customer associated with the invoice.")
             }
-
-
+        },
+        async ({
+            locationId,
+            customerId,
+        }: { locationId: string; customerId: string }) => {
             try {
-
                 const response = await squareClient.invoices.search({
                     query: {
                         filter: {
-
-                            locationIds: [Array.isArray(locationID) ? locationID[0] : locationID],
-
-                            customerIds: [Array.isArray(customerID) ? customerID[0] : customerID],
+                            locationIds: [Array.isArray(locationId) ? locationId[0] : locationId],
+                            customerIds: [Array.isArray(customerId) ? customerId[0] : customerId],
                         },
                     },
                 });
 
-                const invoice = response.invoices || [];
+                const invoices = response.invoices || [];
 
-                const safeInvoice = invoice.map(invoice => ({
+                const safeInvoice = invoices.map(invoice => ({
                     id: invoice.id,
                     invoiceNumber: invoice.invoiceNumber,
                     title: invoice.title,
@@ -58,31 +48,32 @@ export default function lookupSquareInvoiceByCustomer(mcpServerName: McpServer) 
 
                 const normalizedInvoice = normalizeBigInt(safeInvoice);
 
-                if (invoice.length === 0) {
+                if (invoices.length === 0) {
                     return {
-                        contents: [
+                        content: [
                             {
-                                uri: uri.href,
-                                text: `No invoice found for: ${locationID} and ${customerID}`,
+                                type: "text",
+                                text: `No invoice found for: ${locationId} and ${customerId}`,
                             },
                         ],
                     };
                 }
 
                 return {
-                    contents: [
+                    content: [
                         {
-                            uri: uri.href,
+                            type: "text",
                             text: JSON.stringify(normalizedInvoice, null, 2),
-                            structuredContent: normalizedInvoice,
                         },
                     ],
+                    structuredContent: normalizedInvoice,
                 };
-            } catch (error) {
+            } 
+            catch (error) {
                 return {
-                    contents: [
+                    content: [
                         {
-                            uri: uri.href,
+                            type: "text",
                             text: `Error looking up invoice: ${typeof error === "object" && error !== null && "message" in error
                                 ? (error as any).message
                                 : String(error)

@@ -1,30 +1,33 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import squareClient from "../../../clients/squareClient.js";
 import normalizeBigInt from "../../../helpers/normalizeBigInt.js";
+import { z } from "zod";
 
 // Search for square customer by ID
 export default function lookupSquareCustomerByID(mcpServerName: McpServer) {
 
-    mcpServerName.registerResource(
+    mcpServerName.registerTool(
         "lookup-square-customer-by-id",
-        new ResourceTemplate("square://customer/by-id/{id}", { list: undefined }),
         {
             title: "Square Customer Lookup (ID)",
             description: "Lookup a Square customer by ID",
-            mimeType: "application/json"
+            inputSchema: {
+                customerId: z.string().min(1).describe("The ID of the customer to look up."),
+            },
         },
-        async (uri, { id }) => {
-
+        async ({
+            customerId,
+        }) => {
             try {
-                const response = await squareClient.customers.get({ customerId: Array.isArray(id) ? id[0] : id });
+                const response = await squareClient.customers.get({ customerId: Array.isArray(customerId) ? customerId[0] : customerId });
                 const customer = response.customer;
                 const normalizedCustomer = normalizeBigInt(customer);
 
                 if (!customer) {
                     return {
-                        contents: [
+                        content: [
                             {
-                                uri: uri.href,
+                                type: "text",
                                 text: "Customer not found",
                             },
                         ],
@@ -32,20 +35,20 @@ export default function lookupSquareCustomerByID(mcpServerName: McpServer) {
                 }
 
                 else return {
-                    contents: [
+                    content: [
                         {
-                            uri: uri.href,
+                            type: "text",
                             text: JSON.stringify(normalizedCustomer, null, 2),
-                            structuredContent: normalizedCustomer,
                         },
                     ],
+                    structuredContent: normalizedCustomer,
                 };
             }
             catch (error) {
                 return {
-                    contents: [
+                    content: [
                         {
-                            uri: uri.href,
+                            type: "text",
                             text: `Error looking up customer: ${typeof error === "object" && error !== null && "message" in error
                                 ? (error as any).message
                                 : String(error)

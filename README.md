@@ -23,17 +23,10 @@
 
 - **Customers**
   - List all: `square://customer/listAll`
-  - Lookup by email: `square://customer/by-email/{email}`
-  - Lookup by ID: `square://customer/by-id/{id}`
-- **Invoices**
-  - List by location: `square://invoices/by-location/{locationId}`
-  - Lookup by customer: `square://invoices/by-customer/{locationID}/{customerID}`
-  - Lookup by ID: `square://invoices/by-id/{invoiceID}`
 
 ### Google
 
 - List next 30 events: `google://calendar/events/list`
-- Lookup event: `google://calendar/event/{eventId}`
 
 ---
 
@@ -47,6 +40,16 @@
   Verifies server and backend dependencies (Redis, Postgres).
 
 ### Square
+
+- **`lookupSquareCustomerByEmail`**
+  Search a Square customer by email.
+   _Parameters:_ email
+   _Returns:_ Customer details
+
+- **`lookupSquareCustomerById`**
+  Search a Square customer by customer ID.
+   _Parameters:_ customerId
+   _Returns:_ Customer details
 
 - **`createSquareCustomer`**  
   Create a customer in Square.  
@@ -62,6 +65,21 @@
   Delete a Square customer.  
   _Parameters:_ customerId  
   _Returns:_ Confirmation with customer ID
+
+- **`listInvoices`**
+  Display all Square invoices by location ID.
+   _Parameters:_ locationId
+   _Returns:_ All invoices for a single location
+
+- **`lookupSquareInvoiceById`**
+  Search a Square invoice by invoice ID.
+   _Parameters:_ invoiceId
+   _Returns:_ Invoice details
+
+- **`lookupSquareInvoiceByCustomer`**
+  Search a Square invoice by customer ID and location ID.
+   _Parameters:_ customerId, locationId
+   _Returns:_ Invoice details
 
 - **`createSquareInvoice`**  
   Create an invoice in Square.  
@@ -79,6 +97,11 @@
   _Returns:_ Confirmation with invoice ID
 
 ### Google
+
+- **`lookupGoogleCalendarEventById`**
+  Search for a Google Calendar event by event ID.
+   _Parameters:_ eventId
+   _Returns:_ Calendar event details
 
 - **`createGoogleCalendarEvent`**  
   Create a Google Calendar event.  
@@ -197,3 +220,11 @@ node --loader ts-node/esm debug_tools/<script_here>
   - Create an external app
   - Add your email as a test user
   - If you subscribe to Google Workspace, you can set the app as internal.
+
+ - The MCP server may be unable to see your Google credentials. If so, add them to your .env file as an absolute path under GOOGLE_CREDENTIALS_PATH and GOOGLE_TOKEN_PATH.
+
+Examples:
+
+## Example Screenshot
+
+![Example Interaction](readme_images/ex1.png)

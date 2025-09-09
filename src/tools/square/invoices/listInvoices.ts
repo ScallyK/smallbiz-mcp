@@ -1,36 +1,27 @@
-import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import squareClient from "../../../clients/squareClient.js";
 import normalizeBigInt from "../../../helpers/normalizeBigInt.js";
+import { z } from "zod";
 
 // List all Square invoices
 export default function listInvoices(mcpServerName: McpServer) {
 
-    mcpServerName.registerResource(
+    mcpServerName.registerTool(
         "list-invoices",
-        new ResourceTemplate("square://invoices/by-location/{locationId}", { list: undefined }),
         {
             title: "List Square Invoices",
-            description: "Rerieve a list of all Square invoices by location ID",
-            mimeType: "application/json"
+            description: "Retrieve a list of all Square invoices by location ID",
+            inputSchema: {
+                locationId: z.string().describe("The ID of the location to list invoices for."),
+            },
         },
-        async (uri, { locationId }) => {
 
-            if (!locationId) {
-                return {
-                    contents: [
-                        {
-                            uri: uri.href,
-                            text: "Location Id is required to search invoices.",
-                        },
-                    ],
-                };
-            }
-
-
+        async ({
+            locationId
+        }) => {
             try {
-
                 const response = await squareClient.invoices.list({
-                    locationId: Array.isArray(locationId) ? locationId[0] : locationId,
+                    locationId: locationId,
                 });
 
                 const invoices = response.data || [];
@@ -51,9 +42,9 @@ export default function listInvoices(mcpServerName: McpServer) {
 
                 if (invoices.length === 0) {
                     return {
-                        contents: [
+                        content: [
                             {
-                                uri: uri.href,
+                                type: "text",
                                 text: `No invoices found for location ID: ${locationId}.`,
                             },
                         ],
@@ -63,19 +54,19 @@ export default function listInvoices(mcpServerName: McpServer) {
                 const normalizedInvoices = normalizeBigInt(safeInvoice);
 
                 return {
-                    contents: [
+                    content: [
                         {
-                            uri: uri.href,
-                            text: JSON.stringify(normalizedInvoices, null, 2),
-                            structuredContent: normalizedInvoices,
+                            type: "text",
+                            text: JSON.stringify(normalizedInvoices),
                         },
                     ],
+                    structuredContent: normalizedInvoices,
                 };
             } catch (error) {
                 return {
-                    contents: [
+                    content: [
                         {
-                            uri: uri.href,
+                            type: "text",
                             text: `Error listing invoices: ${typeof error === "object" && error !== null && "message" in error
                                 ? (error as any).message
                                 : String(error)

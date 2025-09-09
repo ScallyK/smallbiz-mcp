@@ -3,7 +3,6 @@
 - Add database integration for Square/Google requests
 - Finish containerization
 - Properly handle response codes and errors from Square/Google APIs
-- Sanitize outputs
 - Add logging
 
 */
@@ -23,23 +22,23 @@ import createSquareCustomer from "./tools/square/customers/createSquareCustomer.
 import createSquareInvoice from "./tools/square/invoices/createSquareInvoice.js";
 import updateSquareInvoice from "./tools/square/invoices/updateSquareInvoice.js";
 import deleteSquareInvoice from "./tools/square/invoices/deleteSquareInvoice.js";
+import lookupSquareCustomerByEmail from "./tools/square/customers/lookupSquareCustomerByEmail.js";
+import lookupSquareCustomerByID from "./tools/square/customers/lookupSquareCustomerByID.js";
+import lookupSquareInvoiceByCustomer from "./tools/square/invoices/lookupSquareInvoiceByCustomer.js";
+import lookupSquareInvoiceById from "./tools/square/invoices/lookupSquareInvoiceById.js";
+import listInvoices from "./tools/square/invoices/listInvoices.js";
 
 // Google Calendar tool imports
+import lookupGoogleCalendarEventById from "./tools/google/lookupGoogleCalendarEventById.js";
 import deleteGoogleCalendarEvent from "./tools/google/deleteGoogleCalendarEvent.js";
 import createGoogleCalendarEvent from "./tools/google/createGoogleCalendarEvent.js";
 import updateGoogleCalendarEvent from "./tools/google/updateGoogleCalendarEvent.js";
 
 // Square resource imports
-import lookupSquareCustomerByEmail from "./resources/square/customers/lookupSquareCustomerByEmail.js";
 import listSquareCustomers from "./resources/square/customers/listSquareCustomers.js";
-import lookupSquareCustomerByID from "./resources/square/customers/lookupSquareCustomerByID.js";
-import lookupSquareInvoiceByCustomer from "./resources/square/invoices/lookupSquareInvoiceByCustomer.js";
-import lookupSquareInvoiceById from "./resources/square/invoices/lookupSquareInvoiceById.js";
-import listInvoices from "./resources/square/invoices/listInvoices.js";
 
 // Google resource imports
 import listCalendarEvents from "./resources/google/listCalendarEvents.js";
-import lookupGoogleCalendarEventById from "./resources/google/lookupGoogleCalendarEventById.js";
 
 // Init MCP Server
 const smallbiz_MCP = new McpServer({
@@ -47,44 +46,14 @@ const smallbiz_MCP = new McpServer({
   version: "0.1.0",
   capabilities: {
     resources: {
-      "lookup-square-customer-by-email": {
-        description: "Lookup a Square customer by email address",
-        uriTemplate: "square://customer/{email}",
-        mimeTypes: ["application/json"],
-      },
-      "lookup-square-customer-by-id": {
-        description: "Lookup a Square customer by ID",
-        uriTemplate: "square://customer/{id}",
-        mimeTypes: ["application/json"],
-      },
       "list-square-customers": {
         description: "List all Square customers",
         uriTemplate: "square://customers",
         mimeTypes: ["application/json"],
       },
-      "lookup-square-invoice-by-customer": {
-        description: "Lookup Square invoices by customer ID and location ID",
-        uriTemplate: "square://invoice/customer/{customerId}/location/{locationId}",
-        mimeTypes: ["application/json"],
-      },
-      "lookup-square-invoice-by-id": {
-        description: "Lookup Square invoice by invoice ID",
-        uriTemplate: "square://invoice/{invoiceId}",
-        mimeTypes: ["application/json"],
-      },
-      "list-square-invoices": {
-        description: "List all Square invoices",
-        uriTemplate: "square://invoices",
-        mimeTypes: ["application/json"],
-      },
       "list-google-calendar-events": {
         description: "List upcoming Google Calendar events",
         uriTemplate: "google://calendar/events",
-        mimeTypes: ["application/json"],
-      },
-      "lookup-google-calendar-event-by-id": {
-        description: "Lookup Google Calendar event by ID",
-        uriTemplate: "google://calendar/event/{eventId}",
         mimeTypes: ["application/json"],
       },
     },
@@ -107,6 +76,26 @@ const smallbiz_MCP = new McpServer({
       },
       "delete-square-customer": {
         description: "Delete a customer from Square",
+        mimeTypes: ["application/json"],
+      },
+      "list-invoices": {
+        description: "List all Square invoices",
+        mimeTypes: ["application/json"],
+      },
+      "lookup-square-customer-by-email": {
+        description: "Lookup a Square customer by email",
+        mimeTypes: ["application/json"],
+      },
+      "lookup-square-customer-by-id": {
+        description: "Lookup a Square customer by ID",
+        mimeTypes: ["application/json"],
+      },
+      "lookup-square-invoice-by-customer": {
+        description: "Lookup a Square invoice by customer ID and location ID",
+        mimeTypes: ["application/json"],
+      },
+      "lookup-square-invoice-by-id": {
+        description: "Lookup a Square invoice by invoice ID",
         mimeTypes: ["application/json"],
       },
       "create-square-invoice": {
@@ -151,23 +140,8 @@ healthCheck(smallbiz_MCP); // TESTED WORKING
 ----------------Square Resources------------------------
 ----------------------------------------------------- */
 
-// Search for square customer by email
-lookupSquareCustomerByEmail(smallbiz_MCP);  // TESTED WORKING
-
-// Search for square customer by ID
-lookupSquareCustomerByID(smallbiz_MCP); // TESTED WORKING
-
 // List all Square customers
 listSquareCustomers(smallbiz_MCP); // TESTED WORKING
-
-// Search for Square invoice by customer ID and location ID
-lookupSquareInvoiceByCustomer(smallbiz_MCP);  // TESTED WORKING
-
-// Search for Square invoice by invoice ID
-lookupSquareInvoiceById(smallbiz_MCP);  // TESTED WORKING
-
-// List all Square invoices
-listInvoices(smallbiz_MCP); // TESTED WORKING
 
 /* -------------------------------------------------------
 -----------------Google Calendar Resources----------------
@@ -175,9 +149,6 @@ listInvoices(smallbiz_MCP); // TESTED WORKING
 
 // Lists 30 upcoming Google Calendar events
 listCalendarEvents(smallbiz_MCP); // TESTED WORKING
-
-// Gets a calendar event by ID
-lookupGoogleCalendarEventById(smallbiz_MCP); // TESTED WORKING
 
 /* -----------------------------------------------------
 -----------------------Square Tools---------------------
@@ -188,8 +159,24 @@ createSquareCustomer(smallbiz_MCP); // TESTED WORKING
 
 // Updates a customer in Square
 updateSquareCustomer(smallbiz_MCP); // TESTED WORKING.
+
+// Search for square customer by email
+lookupSquareCustomerByEmail(smallbiz_MCP);  // TESTED WORKING
+
+// Search for square customer by ID
+lookupSquareCustomerByID(smallbiz_MCP); // TESTED WORKING
+
 // Deletes a customer from Square
 deleteSquareCustomer(smallbiz_MCP); // TESTED WORKING
+
+// List all Square invoices
+listInvoices(smallbiz_MCP); // TESTED WORKING
+
+// Search for Square invoice by customer ID and location ID
+lookupSquareInvoiceByCustomer(smallbiz_MCP);  // TESTED WORKING
+
+// Search for Square invoice by invoice ID
+lookupSquareInvoiceById(smallbiz_MCP);  // TESTED WORKING
 
 // Creates a new invoice in Square given the below parameters.
 createSquareInvoice(smallbiz_MCP); // TESTED WORKING.
@@ -203,6 +190,9 @@ deleteSquareInvoice(smallbiz_MCP); // TESTED WORKING
 /* ---------------------------------------------------
 -----------------Google Calendar Tools----------------
 --------------------------------------------------- */
+
+// Gets a calendar event by ID
+lookupGoogleCalendarEventById(smallbiz_MCP); // TESTED WORKING
 
 // Creates a Google Calendar event
 createGoogleCalendarEvent(smallbiz_MCP); // TESTED WORKING
