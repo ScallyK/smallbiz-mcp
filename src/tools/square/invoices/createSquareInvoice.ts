@@ -37,7 +37,7 @@ export default function createSquareInvoice(mcpServerName: McpServer) {
             quantity: z.number().min(1),
             basePriceMoney: z.object({
               amount: z.number().min(0),
-              currency: z.string().length(3), // chaning to zCurrency causes inspector issues
+              currency: z.string().length(3), // changing to zCurrency causes inspector issues
             }),
           })
         ),

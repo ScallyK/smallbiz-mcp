@@ -5,7 +5,6 @@ import squareClient from "../../../clients/squareClient.js";
 import idempotencyKeyGen from "../../../helpers/idempotencyKeyGen.js";
 import normalizeBigInt from "../../../helpers/normalizeBigInt.js";
 import { zCurrency } from "../../../helpers/Currency.js";
-import { version } from "os";
 
 // Updates an invoice in Square
 export default function updateSquareInvoice(mcpServerName: McpServer) {
@@ -27,7 +26,7 @@ export default function updateSquareInvoice(mcpServerName: McpServer) {
             quantity: z.number().min(1),
             basePriceMoney: z.object({
               amount: z.number().min(0),
-              currency: z.string().length(3), // chaning to zCurrency causes inspector issues
+              currency: z.string().length(3), // changing to zCurrency causes inspector issues
             }),
           })
         ).optional(),

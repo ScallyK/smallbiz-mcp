@@ -3,10 +3,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 // Basic ping tool
 export default function registerPingTool(mcpServerName: McpServer) {
 
-    mcpServerName.tool(
+    mcpServerName.registerTool(
 
         "ping",
-        "always returns pong",
+        { description: "always returns pong" },
 
         async () => {
             return {

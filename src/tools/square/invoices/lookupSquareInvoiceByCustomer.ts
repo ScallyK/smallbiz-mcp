@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import z from "zod";
 import squareClient from "../../../clients/squareClient.js";
 import normalizeBigInt from "../../../helpers/normalizeBigInt.js";
+import { z } from "zod";
 
 // Search for Square invoice by customer ID and location ID
 export default function lookupSquareInvoiceByCustomer(mcpServerName: McpServer) {
