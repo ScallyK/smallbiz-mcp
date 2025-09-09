@@ -4,9 +4,9 @@ import prisma from "../../clients/prismaClient.js";
 // Verifies that the server and backend dependencies are healthy.
 export default function healthCheck(mcpServerName: McpServer) {
 
-    mcpServerName.tool(
+    mcpServerName.registerTool(
         "healthcheck",
-        "Verify server and database connectivity",
+        { description: "Verify server and database connectivity" },
 
         async () => {
 

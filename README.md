@@ -166,7 +166,7 @@ npm run watch
 **Test with MCP Inspector:**
 ```bash
 npm run build
-npx @modelcontextprotocol/inspector build/mcp.js
+npx @modelcontextprotocol/inspector build/index.js
 ```
 
 ---
@@ -182,7 +182,7 @@ To use with **Claude Desktop**, add the server config:
 {
   "mcpServers": {
     "smallbiz-mcp-server": {
-      "command": "/path/to/smallbiz-mcp-server/build/mcp.js"
+      "command": "/path/to/smallbiz-mcp-server/build/index.js"
     }
   }
 }
