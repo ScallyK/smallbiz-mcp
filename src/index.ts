@@ -1,54 +1,220 @@
-#!/usr/bin/env node
-// Uses Zod schemas for strict type-safe i/o handling
+/* TODO: 
 
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+- Add database integration for Square/Google requests
+- Finish containerization
+- Properly handle response codes and errors from Square/Google APIs
+- Add logging
+
+*/
+
+// MCP imports
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
 
-// Define tool input/output schemas and types
-const PingInputSchema = z.object({}); // no input required
-const PingOutputSchema = z.object({
-  reply: z.string(),
-});
+// Core tool imports
+import pingTool from "./tools/core/ping.js";
+import healthCheck from "./tools/core/healthCheck.js";
 
-type PingInput = z.infer<typeof PingInputSchema>;
-type PingOutput = z.infer<typeof PingOutputSchema>;
+// Square tool imports
+import updateSquareCustomer from "./tools/square/customers/updateSquareCustomer.js";
+import deleteSquareCustomer from "./tools/square/customers/deleteSquareCustomer.js";
+import createSquareCustomer from "./tools/square/customers/createSquareCustomer.js";
+import createSquareInvoice from "./tools/square/invoices/createSquareInvoice.js";
+import updateSquareInvoice from "./tools/square/invoices/updateSquareInvoice.js";
+import deleteSquareInvoice from "./tools/square/invoices/deleteSquareInvoice.js";
+import lookupSquareCustomerByEmail from "./tools/square/customers/lookupSquareCustomerByEmail.js";
+import lookupSquareCustomerByID from "./tools/square/customers/lookupSquareCustomerByID.js";
+import lookupSquareInvoiceByCustomer from "./tools/square/invoices/lookupSquareInvoiceByCustomer.js";
+import lookupSquareInvoiceById from "./tools/square/invoices/lookupSquareInvoiceById.js";
+import listInvoices from "./tools/square/invoices/listInvoices.js";
 
-// Init server with tools
-const server = new Server(
-  {
-    name: "smallbiz-mcp-server",
-    version: "0.1.0",
-  },
-  {
-    capabilities: {
-      resources: {},
-      prompts: {},
-      tools: {
+// Google Calendar tool imports
+import lookupGoogleCalendarEventById from "./tools/google/lookupGoogleCalendarEventById.js";
+import deleteGoogleCalendarEvent from "./tools/google/deleteGoogleCalendarEvent.js";
+import createGoogleCalendarEvent from "./tools/google/createGoogleCalendarEvent.js";
+import updateGoogleCalendarEvent from "./tools/google/updateGoogleCalendarEvent.js";
 
-        ping: {
-          description: "returns pong",
-          input_schema: PingInputSchema,
-          output_schema: PingOutputSchema,
-          handler: async (_input: PingInput): Promise<PingOutput> => {
-            return { reply: "pong" };
-          },
-        },
+// Square resource imports
+import listSquareCustomers from "./resources/square/customers/listSquareCustomers.js";
 
+// Google resource imports
+import listCalendarEvents from "./resources/google/listCalendarEvents.js";
+
+// Init MCP Server
+const smallbiz_MCP = new McpServer({
+  name: "smallbiz-mcp",
+  version: "0.1.0",
+  capabilities: {
+    resources: {
+      "list-square-customers": {
+        description: "List all Square customers",
+        uriTemplate: "square://customers",
+        mimeTypes: ["application/json"],
+      },
+      "list-google-calendar-events": {
+        description: "List upcoming Google Calendar events",
+        uriTemplate: "google://calendar/events",
+        mimeTypes: ["application/json"],
       },
     },
-  }
-);
+    tools: {
+      "ping": {
+        description: "Ping the server to check connectivity",
+        mimeTypes: ["application/json"],
+      },
+      "health-check": {
+        description: "Check health of server and dependencies",
+        mimeTypes: ["application/json"],
+      },
+      "create-square-customer": {
+        description: "Create a new customer in Square",
+        mimeTypes: ["application/json"],
+      },
+      "update-square-customer": {
+        description: "Update a customer in Square",
+        mimeTypes: ["application/json"],
+      },
+      "delete-square-customer": {
+        description: "Delete a customer from Square",
+        mimeTypes: ["application/json"],
+      },
+      "list-invoices": {
+        description: "List all Square invoices",
+        mimeTypes: ["application/json"],
+      },
+      "lookup-square-customer-by-email": {
+        description: "Lookup a Square customer by email",
+        mimeTypes: ["application/json"],
+      },
+      "lookup-square-customer-by-id": {
+        description: "Lookup a Square customer by ID",
+        mimeTypes: ["application/json"],
+      },
+      "lookup-square-invoice-by-customer": {
+        description: "Lookup a Square invoice by customer ID and location ID",
+        mimeTypes: ["application/json"],
+      },
+      "lookup-square-invoice-by-id": {
+        description: "Lookup a Square invoice by invoice ID",
+        mimeTypes: ["application/json"],
+      },
+      "create-square-invoice": {
+        description: "Create a new invoice in Square",
+        mimeTypes: ["application/json"],
+      },
+      "update-square-invoice": {
+        description: "Update an invoice in Square",
+        mimeTypes: ["application/json"],
+      },
+      "delete-square-invoice": {
+        description: "Delete an invoice from Square",
+        mimeTypes: ["application/json"],
+      },
+      "create-google-calendar-event": {
+        description: "Create a Google Calendar event",
+        mimeTypes: ["application/json"],
+      },
+      "update-google-calendar-event": {
+        description: "Update a Google Calendar event",
+        mimeTypes: ["application/json"],
+      },
+      "delete-google-calendar-event": {
+        description: "Delete a Google Calendar event",
+        mimeTypes: ["application/json"],
+      },
+    },
+  },
+});
 
+/* --------------------------------------------
+-------------------Core Tools------------------
+-------------------------------------------- */
+
+// Basic ping tool, always returns "pong".
+pingTool(smallbiz_MCP); // TESTED WORKING
+
+// Verifies that the server and backend dependencies are healthy. (postgres and redis)
+healthCheck(smallbiz_MCP); // TESTED WORKING
+
+/* -----------------------------------------------------
+----------------Square Resources------------------------
+----------------------------------------------------- */
+
+// List all Square customers
+listSquareCustomers(smallbiz_MCP); // TESTED WORKING
+
+/* -------------------------------------------------------
+-----------------Google Calendar Resources----------------
+------------------------------------------------------- */
+
+// Lists 30 upcoming Google Calendar events
+listCalendarEvents(smallbiz_MCP); // TESTED WORKING
+
+/* -----------------------------------------------------
+-----------------------Square Tools---------------------
+----------------------------------------------------- */
+
+// Creates a new customer in Square
+createSquareCustomer(smallbiz_MCP); // TESTED WORKING
+
+// Updates a customer in Square
+updateSquareCustomer(smallbiz_MCP); // TESTED WORKING.
+
+// Search for square customer by email
+lookupSquareCustomerByEmail(smallbiz_MCP);  // TESTED WORKING
+
+// Search for square customer by ID
+lookupSquareCustomerByID(smallbiz_MCP); // TESTED WORKING
+
+// Deletes a customer from Square
+deleteSquareCustomer(smallbiz_MCP); // TESTED WORKING
+
+// List all Square invoices
+listInvoices(smallbiz_MCP); // TESTED WORKING
+
+// Search for Square invoice by customer ID and location ID
+lookupSquareInvoiceByCustomer(smallbiz_MCP);  // TESTED WORKING
+
+// Search for Square invoice by invoice ID
+lookupSquareInvoiceById(smallbiz_MCP);  // TESTED WORKING
+
+// Creates a new invoice in Square given the below parameters.
+createSquareInvoice(smallbiz_MCP); // TESTED WORKING.
+
+// Updates an invoice in Square.
+updateSquareInvoice(smallbiz_MCP); // TESTED WORKING.
+
+// Deletes an invoice from Square
+deleteSquareInvoice(smallbiz_MCP); // TESTED WORKING
+
+/* ---------------------------------------------------
+-----------------Google Calendar Tools----------------
+--------------------------------------------------- */
+
+// Gets a calendar event by ID
+lookupGoogleCalendarEventById(smallbiz_MCP); // TESTED WORKING
+
+// Creates a Google Calendar event
+createGoogleCalendarEvent(smallbiz_MCP); // TESTED WORKING
+
+// Updates a Google Calendar event
+updateGoogleCalendarEvent(smallbiz_MCP); // TESTED WORKING
+
+// Deletes a Google Calendar event
+deleteGoogleCalendarEvent(smallbiz_MCP); // TESTED WORKING
+
+// Start MCP server
 async function main() {
-  try {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.log("smallbiz-mcp-server is running on stdio...");
-  } catch (err) {
-    console.error("Server error:", err);
-    process.exit(1);
-  }
+
+  const transport = new StdioServerTransport();
+  await smallbiz_MCP.connect(transport);
+
+  console.log("smallbiz-mcp server running on stdio!");
 }
 
-main();
+main().catch((error) => {
+  console.error("Fatal error in main():", error);
+  process.exit(1);
+});
+
+
